@@ -2,6 +2,8 @@
 using System.IO;
 using HarmonyLib;
 using JetBrains.Annotations;
+using UnityEngine.UI;
+using UnityEngine;
 using UnityModManagerNet;
 
 namespace Multiscreen;
@@ -32,6 +34,7 @@ public static class Multiscreen
             harmony.PatchAll();
 
             Log("Patched");
+            Activate();
 
         }
         catch (Exception ex)
@@ -42,6 +45,60 @@ public static class Multiscreen
         }
 
         return true;
+    }
+
+    private static void Activate()
+    {
+        Multiscreen.Log("MainMenu.Awake()");
+        Multiscreen.Log($"Display Count: {Display.displays.Length}");
+        Multiscreen.Log($"Screen (Display 0): {Screen.width}x{Screen.height}");
+
+        if (Display.displays.Length > 1 && !Display.displays[1].active)
+        {
+            int width2, height2;
+            width2 = Display.displays[1].systemWidth;
+            height2 = Display.displays[1].systemHeight;
+
+            Multiscreen.Log($"Display 1: {width2}x{height2}");
+
+            Display.displays[1].SetParams(width2, height2, 0, 0);
+
+            Multiscreen.Log("Display 1 Activating...");
+
+            Display.displays[1].Activate(width2, height2, 60);
+
+            Screen.fullScreen = true;
+
+            GameObject myGO;
+            GameObject myCamGO;
+            Camera myCamera;
+            Canvas myCanvas;
+
+            //Create a new camera for the display
+            myCamGO = new GameObject("myCam");
+            myCamera = myCamGO.AddComponent<Camera>();
+            myCamera.targetDisplay = 1;
+
+            myCamGO.SetActive(true);
+
+            // Canvas
+            myGO = new GameObject("Canvas - Undock");
+            myGO.layer = 5; //GUI layer
+
+            myCanvas = myGO.AddComponent<Canvas>();
+
+            myCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            myCanvas.sortingOrder = 1;
+            myCanvas.worldCamera = myCamera;
+            myCanvas.targetDisplay = 1;
+
+            myGO.AddComponent<CanvasScaler>();
+            myGO.AddComponent<GraphicRaycaster>();
+
+            myGO.SetActive(true);
+
+            Multiscreen.Log("Display 1 Activated");
+        }
     }
 
     #region Logging
@@ -78,6 +135,5 @@ public static class Multiscreen
         string str = $"[{DateTime.Now:HH:mm:ss.fff}] {msg}";
         ModEntry.Logger.Log(str);
     }
-
     #endregion
 }
