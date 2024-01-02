@@ -2,6 +2,7 @@ using System;
 using Humanizer;
 using UnityEngine;
 using UnityModManagerNet;
+using static UnityModManagerNet.UnityModManager;
 
 namespace Multiscreen;
 
@@ -11,11 +12,11 @@ public class Settings : UnityModManager.ModSettings, IDrawable
 {
     public static Action<Settings> OnSettingsUpdated;
 
-    /*
-    [Header("Player")]
-    [Draw("Username", Tooltip = "Your username in-game")]
-    public string Username = "Player";
-    public string Guid = System.Guid.NewGuid().ToString();*/
+    //[Header("Second Display")]
+    //[Draw("Second Display", Tooltip = "This is the Unity Display number: -1 not set, must be >= 1")]
+    public int gameDisplay = -1;
+    public int secondDisplay = -1;
+    //public int resloution = 0;
 
     /*
     [Space(10)]
@@ -49,10 +50,15 @@ public class Settings : UnityModManager.ModSettings, IDrawable
         UnityModManager.UI.DrawFields(ref self, modEntry, DrawFieldMask.OnlyDrawAttr, OnChange);
         /*if (ShowAdvancedSettings && GUILayout.Button("Enable Developer Commands"))
             Console.RegisterDevCommands();*/
+        
     }
 
     public override void Save(UnityModManager.ModEntry modEntry)
     {
+        if(gameDisplay == secondDisplay)
+        {
+            secondDisplay = -1;
+        }
         /*if (!UnloadWatcher.isQuitting)
             OnSettingsUpdated?.Invoke(this);*/
         Save(this, modEntry);

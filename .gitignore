@@ -253,3 +253,4 @@ Directory.Build.targets
 
 # LibreOffice locks
 .~lock.*#
+Assets/Railroader/

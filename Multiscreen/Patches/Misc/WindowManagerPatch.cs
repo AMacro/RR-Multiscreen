@@ -20,7 +20,7 @@ public static class WindowManager_Patch
     [HarmonyPatch(typeof(WindowManager), nameof(WindowManager.HitTest))]
     private static bool HitTest(WindowManager __instance, ref Window __result, Vector3 mousePosition)
     {
-        //Multiscreen.Log($"Hit Test({mousePosition})");
+        //Multiscreen.LogDebug(()=>$"Hit Test({mousePosition})");
 
         GameObject undockParent = GameObject.Find("Canvas - Undock");
 
@@ -34,9 +34,9 @@ public static class WindowManager_Patch
             {
                 RectTransform component = window.GetComponent<RectTransform>();
                 Vector3 point = component.InverseTransformPoint(mousePosition);
-                if (component.rect.Contains(point) && mousePosition.z == 1) //confirm mouse is on the same display as the canvas
+                if (component.rect.Contains(point) && mousePosition.z == Multiscreen.targetDisplay) //confirm mouse is on the same display as the canvas
                 {
-                    //Multiscreen.Log($"Hit Test({mousePosition}) - FOUND {window?.name}");
+                    //Multiscreen.LogDebug(()=>$"Hit Test({mousePosition}) - FOUND {window?.name}");
                     __result = window;
                     return false;
                 }

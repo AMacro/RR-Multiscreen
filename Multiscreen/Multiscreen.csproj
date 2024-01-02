@@ -5,8 +5,8 @@
     <LangVersion>latest</LangVersion>
     <RootNamespace>Multiscreen</RootNamespace>
     <SignAssembly>False</SignAssembly>
-    <FileVersion>1.0.0.1</FileVersion>
-    <AssemblyVersion>1.0.0.1</AssemblyVersion>
+    <FileVersion>1.1.0.0</FileVersion>
+    <AssemblyVersion>1.1.0.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,7 +32,11 @@
   
   <!-- Unity -->
   <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="UnityEngine">
+      <HintPath>$(InstallDir)\Railroader_Data\Managed\</HintPath>
+    </Reference>
+    <Reference Include="RuntimeUnityEditor.Core">
       <HintPath>$(InstallDir)\Railroader_Data\Managed\</HintPath>
     </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">

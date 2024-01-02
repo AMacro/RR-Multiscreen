@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using Multiscreen.Util;
 using Multiscreen.Utils;
 using UI.Map;
 using UnityEngine;
@@ -17,6 +18,10 @@ public static class MapWindowPatch
         _instance = __instance;
         Multiscreen.Log($"MapWindow.Start() {__instance.name}");
         __instance.SetDisplay(true);
+
+        //Display.displays[0].SetRenderingResolution(Display.displays[0].systemWidth - 400, Display.displays[0].systemHeight - 400);
+        //WinNativeUtil.SetWindowLong(Multiscreen.hwnd, WinNativeUtil.GWL_STYLE, WinNativeUtil.WS_BORDER | WinNativeUtil.WS_CLIPSIBLINGS | WinNativeUtil.WS_CAPTION);
+        //WinNativeUtil.SetWindowPos(Multiscreen.hwnd, 0, 200, 200,Display.displays[0].renderingWidth, Display.displays[0].renderingHeight,WinNativeUtil.SWP_SHOWWINDOW);
         return true;
     }
 
