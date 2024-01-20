@@ -17,6 +17,7 @@ using System.Text;
 using Multiscreen.Util;
 using static Effects.ClockDriver;
 using static Multiscreen.Util.WinNativeUtil;
+using Multiscreen.Utils;
 
 
 
@@ -126,6 +127,15 @@ public class ModSettingsMenu : MonoBehaviour
                     }));
                     builder.AddLabel("Note: Display 0 can not be used for the Secondary Display due to a Unity Engine limitation.\r\nA work-around for this on Windows is to change your Primary display in the Windows Display settings.");
 
+                    builder.Spacer().Height(20f);
+
+                    builder.AddField("UI Scale", builder.AddSlider(() => Multiscreen.Settings.secondDisplayScale, () => string.Format("{0}%", Mathf.Round(Multiscreen.Settings.secondDisplayScale * 100f)),
+                   delegate (float f)
+                   {
+                       Multiscreen.Settings.secondDisplayScale = f;
+                       WindowUtils.UpdateScale();
+                   },
+                   0.2f, 2f, false));
                     /*
                     builder.AddField("Full Screen", builder.AddToggle(() => Screen.fullScreen, delegate (bool en)
                     {

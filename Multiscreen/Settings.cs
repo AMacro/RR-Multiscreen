@@ -2,7 +2,9 @@ using System;
 using Humanizer;
 using UnityEngine;
 using UnityModManagerNet;
+using Multiscreen.Utils;
 using static UnityModManagerNet.UnityModManager;
+using Model.AI;
 
 namespace Multiscreen;
 
@@ -17,6 +19,10 @@ public class Settings : UnityModManager.ModSettings, IDrawable
     public int gameDisplay = -1;
     public int secondDisplay = -1;
     //public int resloution = 0;
+
+    //[Draw("scale", Tooltip = "Scale")]
+
+    public float secondDisplayScale = 1f;
 
     /*
     [Space(10)]
@@ -59,6 +65,9 @@ public class Settings : UnityModManager.ModSettings, IDrawable
         {
             secondDisplay = -1;
         }
+
+        secondDisplayScale = Mathf.Clamp(secondDisplayScale,0.2f,2f);
+
         /*if (!UnloadWatcher.isQuitting)
             OnSettingsUpdated?.Invoke(this);*/
         Save(this, modEntry);

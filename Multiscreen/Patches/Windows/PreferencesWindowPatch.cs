@@ -17,7 +17,6 @@ public static class PreferencesWindowPatch
     {
         _instance = __instance;
         Multiscreen.Log($"PreferencesWindow.Awake() {__instance.name}");
-        //__instance.SetDisplay(true);
         return true;
     }
 
@@ -29,21 +28,4 @@ public static class PreferencesWindowPatch
         return false;
     }
 
-    /*
-     * Not implemented in company window
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(CompanyWindow), nameof(CompanyWindow.OnClick))]
-    private static bool OnClick(CompanyWindow __instance)
-    {
-        Multiscreen.Log($"MapWindow.OnClick() Alt: {GameInput.IsAltDown}");
-
-        if (!GameInput.IsAltDown)
-            return true;
-
-
-
-        return true;
-
-    }
-    */
 }

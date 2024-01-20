@@ -22,7 +22,7 @@ public static class WindowManager_Patch
     {
         //Multiscreen.LogDebug(()=>$"Hit Test({mousePosition})");
 
-        GameObject undockParent = GameObject.Find("Canvas - Undock");
+        GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK);
 
         if (undockParent == null)
             return true;
@@ -44,6 +44,26 @@ public static class WindowManager_Patch
         }
 
         return true;
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(WindowManager), nameof(WindowManager.CloseAllWindows))]
+    private static void CloseAllWindows(WindowManager __instance)
+    {
+        GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK);
+
+        if (undockParent == null)
+            return;
+
+        //close all undocked windows
+        for (int i = 0; i < undockParent.transform.childCount; i++)
+        {
+            Window window = undockParent.transform.GetChild(i).GetComponent<Window>();
+            if (window != null && window.IsShown)
+            {
+                window.CloseWindow();                
+            }
+        }
     }
 }
 

@@ -5,18 +5,11 @@ using JetBrains.Annotations;
 using UnityEngine.UI;
 using UnityEngine;
 using UnityModManagerNet;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Xml;
 using Analytics;
 using Helpers;
 using TMPro;
-using System.Runtime.CompilerServices;
-using System.Linq;
-using System.Collections;
-using Multiscreen.Util;
-
 
 
 namespace Multiscreen;
@@ -33,6 +26,9 @@ public static class Multiscreen
 
     private const string LOG_FILE = "multiscreen.log";
     private const string STARTING_POINT = "[Assembly-CSharp.dll]Game.State.StateManager.Awake:Before";
+
+    public const string UNDOCK = "Canvas - Undock";
+    public const string MODALS = "Canvas - Modals";
 
     [UsedImplicitly]
     private static bool Load(UnityModManager.ModEntry modEntry)
@@ -120,39 +116,7 @@ public static class Multiscreen
                 LogDebug(() => $"Display {i} Active: {Display.displays[i].active}");
 
             }
-            /*
-            LogDebug(() => $"Platform: {Application.platform}");
-            if (Application.platform == RuntimePlatform.WindowsPlayer)
-            {
-                if(secondDisplay == 0)
-                {
-                    LogDebug(() => $"Platform: {Application.platform}");
-                    //need to determine which screen to place against
-                    GameObject go = new("DispSwapTest");
-                    go.AddComponent<DisplaySwapTest>();
-                    go.SetActive(true);
-                }
-                else
-                {
-                    Activate();
-                }
-            }
-            else
-            {
-                
-                if (secondDisplay == 0)
-                {
-                    LogWarning($"Only Windows supports config: Second Display = Display 0");
-                    LogWarning($"If you are not using Windows please log a bug report on Nexus Mods: https://www.nexusmods.com/railroader/mods/6");
-                    LogWarning($"Defaulting to: Game Display = Display 0 and Second Display = Display 1");
-
-                    gameDisplay = 0;
-                    secondDisplay = 1;
-                    Activate();
-                }
-            }
-            
-            */
+           
             Activate();
         }
         catch (Exception ex)
@@ -273,7 +237,7 @@ public static class Multiscreen
     {
         
         int width, height;
-        int width2, height2,x2 = 0,y2 = 0;
+        int width2, height2, x2 = 0, y2 = 0;
 
         width = Display.displays[gameDisplay].renderingWidth;
         height = Display.displays[gameDisplay].renderingHeight;
@@ -317,7 +281,7 @@ public static class Multiscreen
         myCamGO.SetActive(true);
 
         // Canvas
-        myGO = new GameObject("Canvas - Undock");
+        myGO = new GameObject(UNDOCK);
         myGO.layer = 5; //GUI layer
 
         myCanvas = myGO.AddComponent<Canvas>();
@@ -329,6 +293,8 @@ public static class Multiscreen
 
         myGO.AddComponent<CanvasScaler>();
         myGO.AddComponent<GraphicRaycaster>();
+
+        //cs.scaleFactor = 0.2f;
 
         myGO.SetActive(true);
 
