@@ -40,7 +40,7 @@ namespace Multiscreen.Utils
                 Multiscreen.Log($"SetDisplay({targetWindow?.name}, {secondary}) New parent: {newParent.name}");
                 targetWindow.transform.SetParent(newParent.transform);
                 Window win = targetWindow.GetComponentInChildren<Window>();
-                win.ShowWindow();
+                //win.ShowWindow();
 
 
             }

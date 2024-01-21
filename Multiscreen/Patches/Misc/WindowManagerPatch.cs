@@ -46,10 +46,12 @@ public static class WindowManager_Patch
         return true;
     }
 
+    /*
     [HarmonyPrefix]
     [HarmonyPatch(typeof(WindowManager), nameof(WindowManager.CloseAllWindows))]
     private static void CloseAllWindows(WindowManager __instance)
     {
+        Multiscreen.Log($"Closing Windows");
         GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK);
 
         if (undockParent == null)
@@ -64,7 +66,10 @@ public static class WindowManager_Patch
                 window.CloseWindow();                
             }
         }
+
+        Multiscreen.Log($"End Closing Windows");
     }
+    */
 }
 
 

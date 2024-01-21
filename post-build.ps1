@@ -1,67 +1,50 @@
 param
 (   
-    [string]$SolnDir,
-    [string]$ProjDir,
-    [string]$Config,
-    [string]$Output,
-	[string]$Type,
+    [switch]$NoArchive,
+    [string]$GameDir,
+    [string]$Target,
 	[string]$Ver
 )
 
-Write-Host $SolnDir
-Write-Host $ProjDir
-Write-Host $Ver
-Write-Host $Type
-Write-Host $Config
+Write-Host "Root: $PSScriptRoot"
+Write-Host "No Archive: $NoArchive"
+Write-Host "Target: $Target"
+Write-Host "Game Dir: $GameDir"
+Write-Host "Version: $Ver"
 
 $compress
 
-if($Type -eq "UMM"){
-	#If we are building for UMM we should update the JSON
-	
-	$json = Get-Content ($ProjDir + 'info.json') -raw | ConvertFrom-Json
-	$json.Version = $Ver
-	$json | ConvertTo-Json -depth 32| set-content ($ProjDir + '\info.json')
-	
-	#Files to be compressed if we make a UMM zip
-	$compress = @{
-		Path = ($ProjDir + "bin\Release\RouteManager.UMM.dll"), ($ProjDir + '\info.json')
-		CompressionLevel = "Fastest"
-		DestinationPath = ($SolnDir + "\Release\RouteManager.UMM " + $Ver + ".zip")
-	}
-	
-	#Check the game mod folder exists
-	if (!(Test-Path ($Output))) {
-		New-Item -ItemType Directory -Path $Output
-	}
-	
-	#copy files to game mod folder for UMM mod
-	Copy-Item -Force -Path ($ProjDir + "bin\" + $Config + "\RouteManager.UMM.dll") -Destination $Output
-	Copy-Item -Force -Path ($ProjDir + '\info.json') -Destination $Output
-	
-}elseif($Type -eq "BepInEx"){
-	#Files to be compressed if we make a BepInEx zip (only applies to Release config)
-	$compress = @{
-		Path = ($ProjDir + "bin\Release\RouteManager.BepInEx.dll"),($ProjDir + "configs\RouteManager.ini")
-		CompressionLevel = "Fastest"
-		DestinationPath = ($SolnDir + "\Release\RouteManager.BepInEx " + $Ver + ".zip")
-	}
-	
-	#Check the game mod folder exists
-	if (!(Test-Path ($Output))) {
-		New-Item -ItemType Directory -Path $Output
-	}
-	
-	#copy files to game plugin folder for BepInEx mod
-	Copy-Item -Force -Path ($ProjDir + "bin\" + $Config + "\RouteManager.BepInEx.dll") -Destination $Output
-	Copy-Item -Force -Path ($ProjDir + "configs\RouteManager.ini") -Destination $Output
+#Update the JSON
+$json = Get-Content ($PSScriptRoot + '/info.json') -raw | ConvertFrom-Json
+$json.Version = $Ver
+$modId = $json.Id
+$json | ConvertTo-Json -depth 32| set-content ($PSScriptRoot + '/info.json')
+
+#Copy files to Build Dir
+Copy-Item ($PSScriptRoot + '/info.json') -Destination ("$PSScriptRoot/build/")
+Copy-Item ($Target) -Destination ("$PSScriptRoot/build/")
+Copy-Item ($PSScriptRoot + '/LICENSE') -Destination ("$PSScriptRoot/build/")
+
+#Copy files to Game Dir
+if (!(Test-Path ($GameDir))) {
+	New-Item -ItemType Directory -Path $GameDir
+}
+Copy-Item ("$PSScriptRoot/build/*") -Destination ($GameDir)
+
+
+#Files to be compressed if we make a zip
+$compress = @{
+	Path = ($PSScriptRoot + "/build/*")
+	CompressionLevel = "Fastest"
+	DestinationPath = ($PSScriptRoot + "/Releases/$modId $Ver.zip")
 }
 
 #Are we building a release or debug?
-if ($Config -eq "Release"){
-	if (!(Test-Path ($SolnDir + "\Release"))) {
-		New-Item -ItemType Directory -Path ($SolnDir + "\Release")
+if (!$NoArchive){
+	if (!(Test-Path ($PSScriptRoot + "/Releases"))) {
+		New-Item -ItemType Directory -Path ($PSScriptRoot + "/Releases")
 	}
 	
+	Write-Host "Zip Path: " $compress.DestinationPath
     Compress-Archive @compress -Force
 }
