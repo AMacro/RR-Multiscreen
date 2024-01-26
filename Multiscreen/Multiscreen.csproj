@@ -5,8 +5,8 @@
     <LangVersion>latest</LangVersion>
     <RootNamespace>Multiscreen</RootNamespace>
     <SignAssembly>False</SignAssembly>
-    <FileVersion>1.3.0.1</FileVersion>
-    <AssemblyVersion>1.3.0.1</AssemblyVersion>
+    <FileVersion>1.3.1.0</FileVersion>
+    <AssemblyVersion>1.3.1.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <PackageReference Include="Krafs.Publicizer" Version="2.2.1" />
+    <PackageReference Include="UnityModManager" Version="0.27.5" />
     <Publicize Include="Assembly-CSharp" IncludeCompilerGeneratedMembers="false" />
   </ItemGroup>
 
@@ -24,9 +25,6 @@
   </ItemGroup>
 
   <!-- Mod Loader -->
-  <ItemGroup>
-    <PackageReference Include="UnityModManager" Version="0.27.5" />
-  </ItemGroup>
 
   <!-- Third-Party -->
   <ItemGroup>
