@@ -6,10 +6,11 @@ This mod expands Railroader from single to dual screen, allowing you to move gam
 **Core Features**
 * Move game windows between screens by ALT+Clicking the title bar of the window
 * Scale the secondary display UI separately from the main game UI
-* For setups with more than 2 monitors select which screen is the main game screen and which screen is the secondary display screen
+* For setups with more than 2 monitors: select which screen is the main game screen and which screen is the secondary display screen
 
 
 ## Installation
+This mod requires Unity Mod Manager, if you are familiar with UMM you can download the [latest Multiscreen release](https://www.nexusmods.com/site/mods/21), otherwise see detailed instructions below.
 
 1. Download the latest version of 'Multiscreen': https://www.nexusmods.com/railroader/mods/6
 
