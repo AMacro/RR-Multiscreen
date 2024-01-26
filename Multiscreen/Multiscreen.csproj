@@ -77,20 +77,12 @@
   </Target>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent" DependsOnTargets="PostBuildMacros">	  
-    <!-- Sign Assemblies if in release $(ConfigurationName) == 'Debug' AND -->
+    <!-- Sign Assemblies if in 'Release' -->
 	<Exec Condition="$(ConfigurationName) == 'Release' AND $(Cert-Thumb) != ''" Command="&quot;$(SignToolPath)SignTool.exe&quot; sign /sha1 $(Cert-Thumb) /fd SHA256 /t http://timestamp.sectigo.com &quot;$(TargetPath)&quot;" />
 	
-	<!-- Update Json and make package $(ConfigurationName) == 'Debug'-->
+	<!-- Update Json, copy to game directory and make package if in 'Release' -->
 	<Exec Condition="$(ConfigurationName) == 'Release'" Command="powershell -executionpolicy bypass -Command &quot;(../post-build.ps1 -Ver '@(VersionNumber)' -Target '$(TargetPath)' -GameDir '$(InstallDir)\Mods\Multiscreen')&quot;" />	
 	<Exec Condition="$(ConfigurationName) == 'Debug'" Command="powershell -executionpolicy bypass -Command &quot;(../post-build.ps1 -Ver '@(VersionNumber)' -NoArchive -Target '$(TargetPath)' -GameDir '$(InstallDir)\Mods\Multiscreen')&quot;" />
-	
-	<!-- Copy Files To Build Dir -->
-    <!-- Copy SourceFiles="../info.json;../LICENSE;$(TargetPath)" DestinationFolder="../build/" / -->
-	
-    <!-- Copy to game install folder -->
-    <!-- Exec Condition="Exists('$(InstallDir)') And '$(OS)' == 'Windows_NT'" Command="powershell -executionpolicy bypass -Command &quot;(../package.ps1 -NoArchive -OutputDirectory '$(InstallDir)\Mods')&quot;" / -->   
-    <!-- Exec Condition="Exists('$(InstallDir)') And '$(OS)' != 'Windows_NT'" Command="pwsh  -Command &quot;(../package.ps1 -NoArchive -OutputDirectory '$(InstallDir)/Mods')&quot;" / -->
-	
   </Target>
 
 </Project>
