@@ -1,5 +1,5 @@
 ﻿using HarmonyLib;
-using Multiscreen.Utils;
+using Multiscreen.Util;
 using UI.CompanyWindow;
 
 
@@ -16,7 +16,7 @@ public static class CompanyWindowPatch
     private static bool Awake(CompanyWindow __instance)
     {
         _instance = __instance;
-        Multiscreen.Log($"CompanyWindow.Awake() {__instance.name}");
+        Logger.LogTrace($"CompanyWindow.Awake() {__instance.name}");
         __instance.SetDisplay(true);
         return true;
     }

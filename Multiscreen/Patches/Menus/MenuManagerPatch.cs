@@ -1,17 +1,9 @@
 ﻿using HarmonyLib;
-using UnityEngine;
-
 using UnityEngine.UI;
 using UI.Menu;
-using System;
-using System.Linq;
-
 using TMPro;
-
 using Multiscreen.CustomMenu;
-using static UnityModManagerNet.UnityModManager;
-
-
+using Multiscreen.Util;
 
 namespace Multiscreen.Patches.Menus;
 
@@ -26,7 +18,7 @@ public static class MenuManagerPatch
     [HarmonyPatch(typeof(MainMenu), nameof(MainMenu.Awake))]
     private static void Awake(MainMenu __instance)
     {
-        Multiscreen.Log("MainMenu.Start()");
+        Logger.LogVerbose("MainMenu.Start()");
 
         _instance = __instance;
 
@@ -58,7 +50,7 @@ public static class MenuManagerPatch
     [HarmonyPatch(typeof(MenuManager), nameof(MenuManager.Start))]
     private static void Start(MenuManager __instance)
     {
-        Multiscreen.Log("MenuManager.Start()");
+        Logger.LogTrace("MenuManager.Start()");
 
         _MMinstance = __instance;
 

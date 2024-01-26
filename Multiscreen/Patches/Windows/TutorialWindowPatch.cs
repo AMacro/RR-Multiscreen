@@ -1,5 +1,5 @@
 ﻿using HarmonyLib;
-using Multiscreen.Utils;
+using Multiscreen.Util;
 using UI.Tutorial;
 
 namespace Multiscreen.Patches.Windows;
@@ -15,7 +15,7 @@ public static class TutorialWindowPatch
     private static bool Awake(TutorialWindow __instance)
     {
         _instance = __instance;
-        Multiscreen.Log($"TutorialWindow.Awake() {__instance.name}");
+        Logger.LogTrace($"TutorialWindow.Awake() {__instance.name}");
         //__instance.SetDisplay(true);
         return true;
     }
@@ -24,6 +24,7 @@ public static class TutorialWindowPatch
     [HarmonyPatch(typeof(TutorialWindow), nameof(TutorialWindow.Shared), MethodType.Getter)]
     private static bool Instance_Get(TutorialWindow __instance, ref TutorialWindow __result)
     {
+        Logger.LogTrace($"Instance_Get.Awake() {__instance.name}");
         __result = _instance;
         return false;
     }

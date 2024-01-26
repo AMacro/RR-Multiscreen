@@ -1,5 +1,5 @@
 ﻿using HarmonyLib;
-using Multiscreen.Utils;
+using Multiscreen.Util;
 using UI.Guide;
 
 
@@ -16,7 +16,7 @@ public static class GuideWindowPatch
     private static bool Awake(GuideWindow __instance)
     {
         _instance = __instance;
-        Multiscreen.Log($"GuideWindow.Awake() {__instance.name}");
+        Logger.LogTrace($"GuideWindow.Awake() {__instance.name}");
         //__instance.SetDisplay(true);
         return true;
     }

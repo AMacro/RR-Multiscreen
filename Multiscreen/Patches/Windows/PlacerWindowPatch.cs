@@ -1,5 +1,5 @@
 ﻿using HarmonyLib;
-using Multiscreen.Utils;
+using Multiscreen.Util;
 using UI.Placer;
 
 namespace Multiscreen.Patches.Windows;
@@ -14,7 +14,7 @@ public static class PlacerWindowPatch
     private static bool Start(PlacerWindow __instance)
     {
         _instance = __instance;
-        Multiscreen.Log($"PlacerWindow.Start() {__instance.name}");
+        Logger.LogTrace($"PlacerWindow.Start() {__instance.name}");
         //__instance.SetDisplay(true);
         return true;
     }

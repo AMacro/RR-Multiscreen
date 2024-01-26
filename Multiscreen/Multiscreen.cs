@@ -6,26 +6,23 @@ using UnityEngine.UI;
 using UnityEngine;
 using UnityModManagerNet;
 using System.Collections.Generic;
-using System.Xml;
 using Analytics;
 using Helpers;
 using TMPro;
+using Logger = Multiscreen.Util.Logger;
 
 
 namespace Multiscreen;
 
 public static class Multiscreen
 {
-
-    public static IntPtr hwnd;
     public static UnityModManager.ModEntry ModEntry;
-    public static Settings Settings;
+    public static Settings settings;
     public static int gameDisplay = 0;
     public static int secondDisplay = 1;
     public static int targetDisplay = 0;
 
-    private const string LOG_FILE = "multiscreen.log";
-    private const string STARTING_POINT = "[Assembly-CSharp.dll]Game.State.StateManager.Awake:Before";
+    //private const string LOG_FILE = "multiscreen.log";
 
     public const string UNDOCK = "Canvas - Undock";
     public const string MODALS = "Canvas - Modals";
@@ -34,34 +31,25 @@ public static class Multiscreen
     private static bool Load(UnityModManager.ModEntry modEntry)
     {
         ModEntry = modEntry;
-        Settings = Settings.Load<Settings>(modEntry);
-        ModEntry.OnGUI = Settings.Draw;
-        ModEntry.OnSaveGUI = Settings.Save;
+        settings = Settings.Load<Settings>(modEntry);
+        ModEntry.OnGUI = settings.Draw;
+        ModEntry.OnSaveGUI = settings.Save;
         ModEntry.OnLateUpdate += Multiscreen.LateUpdate;
 
         Harmony harmony = null;
 
         try
         {
-            File.Delete(LOG_FILE);
-
-            //Make sure we have the right restart point
-            Log($"Checking Starting Point...");
-            if (!CheckStartPoint())
-            {
-                ShowRestart();
-                return false;
-            }
+            //File.Delete(LOG_FILE);
 
             //Apply patches
-            Log("Patching...");
+            Logger.LogInfo("Patching...");
             harmony = new Harmony(ModEntry.Info.Id);
             harmony.PatchAll();
-            Log("Patched");
-
+            Logger.LogInfo("Patched");
 
             //Write screen data to log
-            Multiscreen.Log($"Display Count: {Display.displays.Length}");
+            Logger.LogInfo($"Display Count: {Display.displays.Length}");
 
             List<DisplayInfo> displays = new List<DisplayInfo>();
             Screen.GetDisplayLayout(displays);
@@ -69,22 +57,22 @@ public static class Multiscreen
             int i = 0;
             foreach (DisplayInfo displayInfo in displays)
             {
-                Multiscreen.Log($"Display {i} ({displayInfo.name}): {displayInfo.width}x{displayInfo.height} {displayInfo.refreshRate} Hz");
+                Logger.LogDebug($"Display {i} ({displayInfo.name}): {displayInfo.width}x{displayInfo.height} @ {displayInfo.refreshRate} Hz");
 
                 i++;
             }
 
             if (Display.displays.Length <= 1)
             {
-                Log("Less than 2 displays detected, nothing to do...");
+                Logger.LogInfo("Less than 2 displays detected, nothing to do...");
                 return true;
             }
 
             //Validate screen selection settings
-            gameDisplay = Settings.gameDisplay;
-            secondDisplay = Settings.secondDisplay;
+            gameDisplay = settings.gameDisplay;
+            secondDisplay = settings.secondDisplay;
 
-            LogDebug(() => $"\r\n\tGame Display: {gameDisplay}\r\n\tSecond Display: {secondDisplay}");
+            Logger.LogDebug(() => $"\r\n\tGame Display: {gameDisplay}\r\n\tSecond Display: {secondDisplay}");
 
             if(gameDisplay == secondDisplay)
             {
@@ -106,14 +94,14 @@ public static class Multiscreen
             //To use Display 0 for the second display we need to target display 1, then move the window to display 0
             targetDisplay = secondDisplay == 0 ? 1 : secondDisplay;
 
-            LogDebug(() => $"\r\n\tGame Display: {gameDisplay}\r\n\tSecond Display: {secondDisplay}\r\n\tTarget Display: {targetDisplay}");
+            Logger.LogDebug($"\r\n\tGame Display: {gameDisplay}\r\n\tSecond Display: {secondDisplay}\r\n\tTarget Display: {targetDisplay}");
 
             int mainDisp = displays.FindIndex(s => s.Equals(Screen.mainWindowDisplayInfo));
-            LogDebug(() => $"Main Display: {mainDisp}");
+            Logger.LogDebug($"Main Display: {mainDisp}");
 
             for( i=0; i<Display.displays.Length; i++)
             {
-                LogDebug(() => $"Display {i} Active: {Display.displays[i].active}");
+                Logger.LogDebug($"Display {i} Active: {Display.displays[i].active}");
 
             }
            
@@ -121,7 +109,7 @@ public static class Multiscreen
         }
         catch (Exception ex)
         {
-            LogException("Failed to load:", ex);
+            Logger.LogInfo("Failed to load: {ex}");
             harmony?.UnpatchAll();
             return false;
         }
@@ -135,7 +123,7 @@ public static class Multiscreen
     {
         if(ModEntry.NewestVersion != null && ModEntry.NewestVersion.ToString() != "")
         {
-            Multiscreen.Log($"Multiscreen Latest Version: {ModEntry.NewestVersion}");
+            Logger.LogInfo($"Multiscreen Latest Version: {ModEntry.NewestVersion}");
 
             ModEntry.OnLateUpdate -= Multiscreen.LateUpdate;
 
@@ -147,32 +135,6 @@ public static class Multiscreen
         }
         
     }
-
-    private static bool CheckStartPoint()
-    {
-        string config = Path.GetFullPath(Application.dataPath+ "/Managed/UnityModManager/Config.xml");
-        if (File.Exists(config))
-        {
-            XmlDocument doc = new XmlDocument();
-            doc.Load(config);
-
-            XmlNode StartingPoint = doc.SelectSingleNode(@"/Config/StartingPoint");
-
-            Log($"Starting Point: {StartingPoint.InnerText}");
-            if(StartingPoint.InnerText != STARTING_POINT)
-            {
-                Log($"Starting Point requires update");
-                StartingPoint.InnerText = STARTING_POINT;
-                doc.Save(config);
-                return false;
-            }
-            
-        }
-        Log($"Starting Point: Pass");
-
-        return true;
-    }
-
     private static void ShowUpdate()
     {
         EarlyAccessSplash earlyAccessSplash = UnityEngine.Object.FindObjectOfType<EarlyAccessSplash>();
@@ -186,11 +148,9 @@ public static class Multiscreen
         text.text = $"\r\n<style=h3>Multiscreen Update</style>\r\n\r\nA new version of Multiscreen Mod is available.\r\n\r\nCurrent version: {ModEntry.Version}\r\nNew version: {ModEntry.NewestVersion}\r\n\r\nRun Unity Mod Manager Installer to apply the update.";
 
         RectTransform rt = GameObject.Find("Canvas/EA(Clone)/EA Panel").transform.GetComponent<RectTransform>();
-        //rt.sizeDelta = new Vector2(rt.rect.width, rt.rect.height);
 
 
         UnityEngine.Object.DestroyImmediate(GameObject.Find("Canvas/EA(Clone)/EA Panel/Label Regular"));
-        //UnityEngine.Object.DestroyImmediate(GameObject.Find("Canvas/EA/EA Panel/Buttons/Opt In"));
         UnityEngine.Object.DestroyImmediate(GameObject.Find("Canvas/EA(Clone)/EA Panel/Buttons/Opt Out"));
 
         UnityEngine.UI.Button button = GameObject.Find("Canvas/EA(Clone)/EA Panel/Buttons/Opt In").GetComponentInChildren<UnityEngine.UI.Button>();
@@ -241,33 +201,26 @@ public static class Multiscreen
 
         width = Display.displays[gameDisplay].renderingWidth;
         height = Display.displays[gameDisplay].renderingHeight;
-
             
         width2 = Display.displays[targetDisplay].systemWidth;
         height2 = Display.displays[targetDisplay].systemHeight;
 
-        Multiscreen.Log($"Display 0: {width}x{height} Full Screen: {Screen.fullScreen}");
-        Multiscreen.Log($"Display {targetDisplay}: {width2}x{height2}");
+        Logger.LogDebug($"Display 0: {width}x{height} Full Screen: {Screen.fullScreen}");
+        Logger.LogDebug($"Display {targetDisplay}: {width2}x{height2}");
 
         List<DisplayInfo> displayInfo = new List<DisplayInfo>();
         Screen.GetDisplayLayout(displayInfo);
 
         Screen.MoveMainWindowTo(displayInfo[gameDisplay],new Vector2Int(0,0));
-            
 
-        Multiscreen.Log($"Display {targetDisplay} Activating...");
 
-        //Display.displays[1].Activate(width2, height2, 60);
-        //Screen.fullScreen = false;
+        Logger.LogInfo($"Display {targetDisplay} Activating...");
+
+        Screen.fullScreen = true;
         Display.displays[targetDisplay].Activate();
         Display.displays[targetDisplay].SetRenderingResolution(width2, height2);
         Display.displays[targetDisplay].SetParams(width2, height2, x2, y2);
-
-
-        //Display.displays[0].SetRenderingResolution(width, height);
-
-        //Screen.fullScreen = false;
-
+      
         GameObject myGO;
         GameObject myCamGO;
         Camera myCamera;
@@ -294,47 +247,9 @@ public static class Multiscreen
         myGO.AddComponent<CanvasScaler>();
         myGO.AddComponent<GraphicRaycaster>();
 
-        //cs.scaleFactor = 0.2f;
-
         myGO.SetActive(true);
 
-        Multiscreen.Log($"Display {targetDisplay} Activated");
+        Logger.LogInfo($"Display {targetDisplay} Activated");
            
     }
-
-    #region Logging
-
-    public static void LogDebug(Func<object> resolver)
-    {
-        if (!Settings.DebugLogging)
-            return;
-        WriteLog($"[Debug] {resolver.Invoke()}");
-    }
-
-    public static void Log(object msg)
-    {
-        WriteLog($"[Info] {msg}");
-    }
-
-    public static void LogWarning(object msg)
-    {
-        WriteLog($"[Warning] {msg}");
-    }
-
-    public static void LogError(object msg)
-    {
-        WriteLog($"[Error] {msg}");
-    }
-
-    public static void LogException(object msg, Exception e)
-    {
-        ModEntry.Logger.LogException($"{msg}", e);
-    }
-
-    private static void WriteLog(string msg)
-    {
-        string str = $"[{DateTime.Now:HH:mm:ss.fff}] {msg}";
-        ModEntry.Logger.Log(str);
-    }
-    #endregion
 }

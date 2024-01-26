@@ -1,8 +1,7 @@
-﻿using RuntimeUnityEditor.Core.Utils;
-using UI.Common;
+﻿using UI.Common;
 using UnityEngine;
 
-namespace Multiscreen.Utils
+namespace Multiscreen.Util
 {
     public static class WindowUtils
     {
@@ -13,21 +12,23 @@ namespace Multiscreen.Utils
                 return;
             }
 
-            Multiscreen.Log($"SetDisplay({targetWindow?.name}, {secondary})\r\n\tCurrent Transform: {targetWindow?.transform?.name}\r\n\tCurrent Transform Parent: {targetWindow?.transform?.parent?.name}");
+            Logger.LogVerbose($"SetDisplay({targetWindow?.name}, {secondary})\r\n\tCurrent Transform: {targetWindow?.transform?.name}\r\n\tCurrent Transform Parent: {targetWindow?.transform?.parent?.name}");
 
             GameObject newParent = null;
             GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK);
             GameObject modalParent = GameObject.Find(Multiscreen.MODALS);
 
             if (undockParent != null)
-                Multiscreen.Log($"SetDisplay: Found undockParent");
+                Logger.LogDebug($"SetDisplay: Found undockParent");
             if (modalParent != null)
-                Multiscreen.Log($"SetDisplay: Found modalParent");
+                Logger.LogDebug($"SetDisplay: Found modalParent");
 
             if (secondary == true && undockParent != null)
             {
                 newParent = undockParent;
-                targetWindow.transform.SetLossyScale(new Vector3(Multiscreen.Settings.secondDisplayScale, Multiscreen.Settings.secondDisplayScale, Multiscreen.Settings.secondDisplayScale));
+                targetWindow.transform.SetLossyScale(new Vector3(Multiscreen.settings.secondDisplayScale, Multiscreen.settings.secondDisplayScale, Multiscreen.settings.secondDisplayScale));
+                
+
             }
             else
             {
@@ -37,9 +38,9 @@ namespace Multiscreen.Utils
 
             if (newParent != null)
             {
-                Multiscreen.Log($"SetDisplay({targetWindow?.name}, {secondary}) New parent: {newParent.name}");
+                Logger.LogDebug($"SetDisplay({targetWindow?.name}, {secondary}) New parent: {newParent.name}");
                 targetWindow.transform.SetParent(newParent.transform);
-                Window win = targetWindow.GetComponentInChildren<Window>();
+                //Window win = targetWindow.GetComponentInChildren<Window>();
                 //win.ShowWindow();
 
 
@@ -50,7 +51,7 @@ namespace Multiscreen.Utils
 
         public static void ToggleDisplay(this Component targetWindow) 
         {
-            Multiscreen.Log($"ToggleDisplay({targetWindow?.name}) Current parent: \"{targetWindow.transform.parent.name}\"");
+            Logger.LogDebug($"ToggleDisplay({targetWindow?.name}) Current parent: \"{targetWindow.transform.parent.name}\"");
 
             if (targetWindow.transform.parent.name == Multiscreen.UNDOCK)
             {
@@ -74,9 +75,16 @@ namespace Multiscreen.Utils
                 Window window = undockParent.transform.GetChild(i).GetComponent<Window>();
                 if (window != null && window.IsShown)
                 {
-                    window.transform.SetLossyScale(new Vector3(Multiscreen.Settings.secondDisplayScale, Multiscreen.Settings.secondDisplayScale, Multiscreen.Settings.secondDisplayScale));
+                    window.transform.SetLossyScale(new Vector3(Multiscreen.settings.secondDisplayScale, Multiscreen.settings.secondDisplayScale, Multiscreen.settings.secondDisplayScale));
                 }
             }
+        }
+
+        public static void SetLossyScale(this Transform targetTransform, Vector3 lossyScale)
+        {
+            targetTransform.localScale = new Vector3(targetTransform.localScale.x * (lossyScale.x / targetTransform.lossyScale.x),
+                                                     targetTransform.localScale.y * (lossyScale.y / targetTransform.lossyScale.y),
+                                                     targetTransform.localScale.z * (lossyScale.z / targetTransform.lossyScale.z));
         }
     }
 }

@@ -1,5 +1,5 @@
 ﻿using HarmonyLib;
-using Multiscreen.Utils;
+using Multiscreen.Util;
 using UI.Equipment;
 
 namespace Multiscreen.Patches.Windows;
@@ -15,7 +15,7 @@ public static class EquipmentWindowPatch
     private static bool Awake(EquipmentWindow __instance)
     {
         _instance = __instance;
-        Multiscreen.Log($"EquipmentWindow.Awake() {__instance.name}");
+        Logger.LogTrace($"EquipmentWindow.Awake() {__instance.name}");
         //__instance.SetDisplay(true);
         return true;
     }

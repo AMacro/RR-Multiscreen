@@ -5,9 +5,13 @@
     <LangVersion>latest</LangVersion>
     <RootNamespace>Multiscreen</RootNamespace>
     <SignAssembly>False</SignAssembly>
-    <FileVersion>1.2.4</FileVersion>
-    <AssemblyVersion>1.2.4</AssemblyVersion>
+    <FileVersion>1.3.0.0</FileVersion>
+    <AssemblyVersion>1.3.0.0</AssemblyVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Util\WinNativeUtil.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Krafs.Publicizer" Version="2.2.1" />
@@ -36,9 +40,6 @@
     <Reference Include="UnityEngine">
       <HintPath>$(InstallDir)\Railroader_Data\Managed\</HintPath>
     </Reference>
-    <Reference Include="RuntimeUnityEditor.Core">
-      <HintPath>$(InstallDir)\Railroader_Data\Managed\</HintPath>
-    </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">
       <HintPath>$(InstallDir)\Railroader_Data\Managed\</HintPath>
     </Reference>
@@ -63,7 +64,7 @@
       <HintPath>$(InstallDir)\Railroader_Data\Managed\</HintPath>
     </Reference>
 	  <Reference Include="UnityEngine.TextRenderingModule" />
-	  <Reference Include="Markroader" />
+    <!--Reference Include="Markroader" /-->
     <!-- Reference Include="Unity.InputSystem" />
 	  <Reference Include="Unity.InputLegacyModule" / -->
   </ItemGroup>
@@ -79,7 +80,7 @@
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent" DependsOnTargets="PostBuildMacros">	  
     <!-- Sign Assemblies if in release $(ConfigurationName) == 'Debug' AND -->
-	<Exec Condition="$(Cert-Thumb) != ''" Command="&quot;$(SignToolPath)SignTool.exe&quot; sign /sha1 $(Cert-Thumb) /fd SHA256 /t http://timestamp.sectigo.com &quot;$(TargetPath)&quot;" />
+	<Exec Condition="$(ConfigurationName) == 'Release' AND $(Cert-Thumb) != ''" Command="&quot;$(SignToolPath)SignTool.exe&quot; sign /sha1 $(Cert-Thumb) /fd SHA256 /t http://timestamp.sectigo.com &quot;$(TargetPath)&quot;" />
 	
 	<!-- Update Json and make package $(ConfigurationName) == 'Debug'-->
 	<Exec Condition="$(ConfigurationName) == 'Release'" Command="powershell -executionpolicy bypass -Command &quot;(../post-build.ps1 -Ver '@(VersionNumber)' -Target '$(TargetPath)' -GameDir '$(InstallDir)\Mods\Multiscreen')&quot;" />	

@@ -1,5 +1,5 @@
 ﻿using HarmonyLib;
-using Multiscreen.Utils;
+using Multiscreen.Util;
 using UI.PreferencesWindow;
 
 
@@ -16,7 +16,7 @@ public static class BindingsWindowPatch
     private static bool Awake(BindingsWindow __instance)
     {
         _instance = __instance;
-        Multiscreen.Log($"PreferencesWindow.Awake() {__instance.name}");
+        Logger.LogTrace($"PreferencesWindow.Awake() {__instance.name}");
         //__instance.SetDisplay(true);
         return true;
     }

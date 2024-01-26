@@ -6,18 +6,10 @@ using Multiscreen.Patches.Menus;
 using TMPro;
 using System.Collections.Generic;
 using UI.CompanyWindow;
-using System;
-using System.Reflection;
 using Analytics;
 using Helpers;
-using UnityEngine.Events;
-using System.IO;
-using System.Diagnostics;
-using System.Text;
 using Multiscreen.Util;
-using static Effects.ClockDriver;
-using static Multiscreen.Util.WinNativeUtil;
-using Multiscreen.Utils;
+using Logger = Multiscreen.Util.Logger;
 
 
 
@@ -59,12 +51,12 @@ public class ModSettingsMenu : MonoBehaviour
     {
         if(oldGameDisplay != newGameDisplay || oldSecondDisplay != newSecondDisplay)
         {
-            Multiscreen.Log($"Update: {oldGameDisplay} {newGameDisplay} - {oldSecondDisplay} {newSecondDisplay}");
+            Logger.LogDebug($"Update: {oldGameDisplay} {newGameDisplay} - {oldSecondDisplay} {newSecondDisplay}");
 
             oldGameDisplay = newGameDisplay;
             oldSecondDisplay = newSecondDisplay;
 
-            Multiscreen.Log($"Post Update: {oldGameDisplay} {newGameDisplay} - {oldSecondDisplay} {newSecondDisplay}");
+            Logger.LogDebug($"Post Update: {oldGameDisplay} {newGameDisplay} - {oldSecondDisplay} {newSecondDisplay}");
 
             GameObject.DestroyImmediate(GameObject.Find("Settings Menu(Clone)/Content/Tab View(Clone)"));
             BuildPanelContent();
@@ -78,7 +70,7 @@ public class ModSettingsMenu : MonoBehaviour
         {
             UIPanel.Create(contentPanel.transform.GetComponent<RectTransform>(), assets, delegate (UIPanelBuilder builder)
             {
-                Multiscreen.Log("PanelCreate");
+                Logger.LogTrace("PanelCreate");
 
                 UIPanel.Create(contentPanel.transform.GetComponent<RectTransform>(), assets, delegate (UIPanelBuilder builder)
                 {
@@ -91,7 +83,7 @@ public class ModSettingsMenu : MonoBehaviour
 
                     builder.AddField("Display", builder.AddDropdownIntPicker(values, oldGameDisplay, (int i) => (i >= 0) ? $"Display: {i} ({displays[i].name})" : $"00", canWrite: true, delegate (int i)
                     {
-                        Multiscreen.Log($"Selected Display: {i}");
+                        Logger.LogDebug($"Selected Display: {i}");
                         if(i == oldSecondDisplay)
                         {
                             newSecondDisplay = oldGameDisplay;
@@ -111,7 +103,7 @@ public class ModSettingsMenu : MonoBehaviour
 
                     builder.AddField("Display", builder.AddDropdownIntPicker(values, oldSecondDisplay, (int i) => (i >= 0) ? $"Display: {i} ({displays[i].name})" : $"00", canWrite: true, delegate (int i)
                     {
-                        Multiscreen.Log($"Secondary Display: {i}");
+                        Logger.LogDebug($"Secondary Display: {i}");
                         if (i == 0)
                         {
                             oldSecondDisplay = -1;
@@ -129,10 +121,10 @@ public class ModSettingsMenu : MonoBehaviour
 
                     builder.Spacer().Height(20f);
 
-                    builder.AddField("UI Scale", builder.AddSlider(() => Multiscreen.Settings.secondDisplayScale, () => string.Format("{0}%", Mathf.Round(Multiscreen.Settings.secondDisplayScale * 100f)),
+                    builder.AddField("UI Scale", builder.AddSlider(() => Multiscreen.settings.secondDisplayScale, () => string.Format("{0}%", Mathf.Round(Multiscreen.settings.secondDisplayScale * 100f)),
                    delegate (float f)
                    {
-                       Multiscreen.Settings.secondDisplayScale = f;
+                       Multiscreen.settings.secondDisplayScale = f;
                        WindowUtils.UpdateScale();
                    },
                    0.2f, 2f, false));
@@ -167,7 +159,7 @@ public class ModSettingsMenu : MonoBehaviour
                         if (Multiscreen.gameDisplay != newGameDisplay)
                         {
                             Multiscreen.gameDisplay = newGameDisplay;
-                            Multiscreen.Settings.gameDisplay = newGameDisplay;
+                            Multiscreen.settings.gameDisplay = newGameDisplay;
 
                             Screen.MoveMainWindowTo(displays[Multiscreen.gameDisplay], new Vector2Int(0, 0));
                         }
@@ -175,7 +167,7 @@ public class ModSettingsMenu : MonoBehaviour
                         if (Multiscreen.secondDisplay != newSecondDisplay)
                         {
                             Multiscreen.secondDisplay = newSecondDisplay;
-                            Multiscreen.Settings.secondDisplay = newSecondDisplay;
+                            Multiscreen.settings.secondDisplay = newSecondDisplay;
 
                             /*
                             if (Application.platform == RuntimePlatform.WindowsPlayer)

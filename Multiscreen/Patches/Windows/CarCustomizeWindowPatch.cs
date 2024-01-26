@@ -1,5 +1,5 @@
 ﻿using HarmonyLib;
-using Multiscreen.Utils;
+using Multiscreen.Util;
 using UI.CarCustomizeWindow;
 
 
@@ -16,7 +16,7 @@ public static class CarCustomizeWindowPatch
     private static bool Awake(CarCustomizeWindow __instance)
     {
         _instance = __instance;
-        Multiscreen.Log($"CarCustomizeWindow.Awake() {__instance.name}");
+        Logger.LogTrace($"CarCustomizeWindow.Awake() {__instance.name}");
         //__instance.SetDisplay(true);
         return true;
     }

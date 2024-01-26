@@ -6,8 +6,7 @@ using Multiscreen.Patches.Menus;
 using TMPro;
 using System.Collections.Generic;
 using UI.CompanyWindow;
-using System;
-using System.Reflection;
+using Logger = Multiscreen.Util.Logger;
 
 
 
@@ -49,12 +48,12 @@ public class RestartPromptMenu : MonoBehaviour
     {
         if(oldGameDisplay != newGameDisplay || oldSecondDisplay != newSecondDisplay)
         {
-            Multiscreen.Log($"Update: {oldGameDisplay} {newGameDisplay} - {oldSecondDisplay} {newSecondDisplay}");
+            Logger.LogDebug($"Update: {oldGameDisplay} {newGameDisplay} - {oldSecondDisplay} {newSecondDisplay}");
 
             oldGameDisplay = newGameDisplay;
             oldSecondDisplay = newSecondDisplay;
 
-            Multiscreen.Log($"Post Update: {oldGameDisplay} {newGameDisplay} - {oldSecondDisplay} {newSecondDisplay}");
+            Logger.LogDebug($"Post Update: {oldGameDisplay} {newGameDisplay} - {oldSecondDisplay} {newSecondDisplay}");
 
             GameObject.DestroyImmediate(GameObject.Find("Settings Menu(Clone)/Content/Tab View(Clone)"));
             BuildPanelContent();
@@ -68,7 +67,7 @@ public class RestartPromptMenu : MonoBehaviour
         {
             UIPanel.Create(contentPanel.transform.GetComponent<RectTransform>(), assets, delegate (UIPanelBuilder builder)
             {
-                Multiscreen.Log("PanelCreate");
+                Logger.LogVerbose("PanelCreate");
 
                 UIPanel.Create(contentPanel.transform.GetComponent<RectTransform>(), assets, delegate (UIPanelBuilder builder)
                 {
@@ -85,7 +84,7 @@ public class RestartPromptMenu : MonoBehaviour
 
                     builder.AddField("Display", builder.AddDropdownIntPicker(values, oldGameDisplay, (int i) => (i >= 0) ? $"Display: {i} ({displays[i].name})" : $"00", canWrite: true, delegate (int i)
                     {
-                        Multiscreen.Log($"Selected Display: {i}");
+                        Logger.LogDebug($"Selected Display: {i}");
                         if(i == oldSecondDisplay)
                         {
                             newSecondDisplay = oldGameDisplay;
@@ -96,14 +95,14 @@ public class RestartPromptMenu : MonoBehaviour
                     builder.AddField("Full Screen", builder.AddToggle(() => Screen.fullScreen, delegate (bool en)
                     {
                         //Screen.fullScreen = en;
-                        Multiscreen.Log($"Game Display Full Screen: {en}");
+                        Logger.LogDebug($"Game Display Full Screen: {en}");
                     })).Disable(true);
 
                     builder.AddSection("Secondary Display");
                     //selected = Multiscreen.secondDisplay;
                     builder.AddField("Display", builder.AddDropdownIntPicker(values, oldSecondDisplay, (int i) => (i >= 0) ? $"Display: {i} ({displays[i].name})" : $"00", canWrite: true, delegate (int i)
                     {
-                        Multiscreen.Log($"Secondary Display: {i}");
+                        Logger.LogDebug($"Secondary Display: {i}");
                         if (i == oldGameDisplay)
                         {
                             newGameDisplay = oldSecondDisplay;
@@ -114,7 +113,7 @@ public class RestartPromptMenu : MonoBehaviour
                     builder.AddField("Full Screen", builder.AddToggle(() => Screen.fullScreen, delegate (bool en)
                     {
                         //Screen.fullScreen = en;
-                        Multiscreen.Log($"Secondary Display Full Screen: {en}");
+                        Logger.LogDebug($"Secondary Display Full Screen: {en}");
                     }));
 
                     builder.AddExpandingVerticalSpacer();
@@ -138,14 +137,14 @@ public class RestartPromptMenu : MonoBehaviour
                         if (Multiscreen.gameDisplay != newGameDisplay)
                         {
                             Multiscreen.gameDisplay = newGameDisplay;
-                            Multiscreen.Settings.gameDisplay = newGameDisplay;
+                            Multiscreen.settings.gameDisplay = newGameDisplay;
                             Screen.MoveMainWindowTo(displays[Multiscreen.gameDisplay], new Vector2Int(0, 0));
                         }
                         
                         if(Multiscreen.secondDisplay != newSecondDisplay)
                         {
                             Multiscreen.secondDisplay = newSecondDisplay;
-                            Multiscreen.Settings.secondDisplay = newSecondDisplay;
+                            Multiscreen.settings.secondDisplay = newSecondDisplay;
 
                             
                            

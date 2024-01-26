@@ -1,6 +1,6 @@
 ﻿using Game;
 using HarmonyLib;
-using Multiscreen.Utils;
+using Multiscreen.Util;
 using System;
 using System.Drawing;
 using TMPro;
@@ -10,6 +10,7 @@ using UI.PreferencesWindow;
 using UnityEngine;
 using UnityEngine.UI;
 using static UnityEngine.InputSystem.Layouts.InputControlLayout;
+using Logger = Multiscreen.Util.Logger;
 
 namespace Multiscreen.Patches.Misc;
 
@@ -46,7 +47,7 @@ public static class SettingsBuilderPatch
 
         Transform sibling = null;
 
-        Multiscreen.Log($"Child count: {children.Length}");
+        Logger.LogVerbose($"Child count: {children.Length}");
         for (int i = 0;  i < children.Length; i++)
         {
             //Multiscreen.Log($"Child name: {children[i].text}");
@@ -58,10 +59,10 @@ public static class SettingsBuilderPatch
         }
         
         //add our custom slider
-        IConfigurableElement slider = builder.AddField("UI Scale (Second Display)", builder.AddSlider(() => Multiscreen.Settings.secondDisplayScale, () => string.Format("{0}%", Mathf.Round(Multiscreen.Settings.secondDisplayScale * 100f)),
+        IConfigurableElement slider = builder.AddField("UI Scale (Second Display)", builder.AddSlider(() => Multiscreen.settings.secondDisplayScale, () => string.Format("{0}%", Mathf.Round(Multiscreen.settings.secondDisplayScale * 100f)),
                    delegate (float f)
                    {
-                       Multiscreen.Settings.secondDisplayScale = f;
+                       Multiscreen.settings.secondDisplayScale = f;
                        WindowUtils.UpdateScale();
                    },
                    0.2f, 2f, false));
@@ -70,7 +71,7 @@ public static class SettingsBuilderPatch
         //position beneath vanilla slider
         if (sibling != null)
         {
-            Multiscreen.Log($"slider rect: {slider.RectTransform.name} Index: {slider.RectTransform.GetSiblingIndex()}");
+            Logger.LogDebug($"slider rect: {slider.RectTransform.name} Index: {slider.RectTransform.GetSiblingIndex()}");
             slider.RectTransform.SetSiblingIndex(sibling.GetSiblingIndex()+1);
         }
         
@@ -80,11 +81,11 @@ public static class SettingsBuilderPatch
         {
 
             Vector2 size = PreferencesWindow.Instance._window.GetContentSize();
-            Multiscreen.Log($"Window Size: {size} Slider Size: {slider.RectTransform.transform.GetComponent<RectTransform>().rect.height}");
+            Logger.LogDebug($"Window Size: {size} Slider Size: {slider.RectTransform.transform.GetComponent<RectTransform>().rect.height}");
             size.y += slider.RectTransform.GetComponent<LayoutElement>().minHeight;// slider.RectTransform.rect.height;
   
             PreferencesWindow.Instance._window.SetContentSize(size);
-            Multiscreen.Log($"Window Size: {size} Slider Size: {slider.RectTransform.parent}");
+            Logger.LogDebug($"Window Size: {size} Slider Size: {slider.RectTransform.parent}");
         }
     }
 
@@ -95,10 +96,10 @@ public static class SettingsBuilderPatch
 
         
         /*SettingsBuilder._uiScaleRectTransform = *//*builder.AddField("UI Scale",
-            builder.AddSlider(() => Multiscreen.Settings.secondDisplayScale, () => string.Format("{0}%", Mathf.Round(Multiscreen.Settings.secondDisplayScale * 100f)),
+            builder.AddSlider(() => Multiscreen.settings.secondDisplayScale, () => string.Format("{0}%", Mathf.Round(Multiscreen.settings.secondDisplayScale * 100f)),
             delegate (float f)
                 {
-                    Multiscreen.Settings.secondDisplayScale = f;
+                    Multiscreen.settings.secondDisplayScale = f;
                     WindowUtils.UpdateScale();
                 },
             0.2f, 2f, false));

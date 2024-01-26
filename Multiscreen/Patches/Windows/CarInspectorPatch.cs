@@ -1,6 +1,6 @@
 ﻿
 using HarmonyLib;
-using Multiscreen.Utils;
+using Multiscreen.Util;
 using UI.CarInspector;
 
 namespace Multiscreen.Patches.Windows;
@@ -16,7 +16,7 @@ public static class CarInspectorPatch
     private static bool Awake(CarInspector __instance)
     {
         _instance = __instance;
-        Multiscreen.Log($"CarInspector.Awake() {__instance.name}");
+        Logger.LogTrace($"CarInspector.Awake() {__instance.name}");
         //__instance.SetDisplay(true);
         return true;
     }

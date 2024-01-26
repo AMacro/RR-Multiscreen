@@ -1,5 +1,5 @@
 ﻿using HarmonyLib;
-using Multiscreen.Utils;
+using Multiscreen.Util;
 using UI.SwitchList;
 
 namespace Multiscreen.Patches.Windows;
@@ -15,7 +15,7 @@ public static class SwitchListPanelPatch
     private static bool Awake(SwitchListPanel __instance)
     {
         _instance = __instance;
-        Multiscreen.Log($"SwitchListPanel.Start() {__instance.name}");
+        Logger.LogTrace($"SwitchListPanel.Start() {__instance.name}");
         //__instance.SetDisplay(true);
         return true;
     }

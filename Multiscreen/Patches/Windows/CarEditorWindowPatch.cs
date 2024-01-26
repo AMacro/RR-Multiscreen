@@ -1,5 +1,5 @@
 ﻿using HarmonyLib;
-using Multiscreen.Utils;
+using Multiscreen.Util;
 using UI.CarEditor;
 
 
@@ -16,7 +16,7 @@ public static class CarEditorWindowPatch
     private static bool Awake(CarEditorWindow __instance)
     {
         _instance = __instance;
-        Multiscreen.Log($"CarEditorWindow.Awake() {__instance.name}");
+        Logger.LogTrace($"CarEditorWindow.Awake() {__instance.name}");
         //__instance.SetDisplay(true);
         return true;
     }
