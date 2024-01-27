@@ -227,9 +227,10 @@ public static class Multiscreen
         Canvas myCanvas;
 
         //Create a new camera for the display
-        myCamGO = new GameObject("myCam");
+        myCamGO = new GameObject("SecondDisplayCam");
         myCamera = myCamGO.AddComponent<Camera>();
         myCamera.targetDisplay = targetDisplay;
+        myCamera.cullingMask = 0; //fix for trees rendering at top of screen
 
         myCamGO.SetActive(true);
 

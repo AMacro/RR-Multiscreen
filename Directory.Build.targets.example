@@ -1,12 +1,10 @@
 <Project>
     <PropertyGroup>
         <InstallDir>C:\Program Files (x86)\Steam\steamapps\common\Railroader</InstallDir>
-        <UnityInstallDir>C:\Program Files\Unity\Hub\Editor\2019.4.40f1\Editor</UnityInstallDir>
         <ReferencePath>
             $(InstallDir)\Railroader_Data\Managed\;
             $(InstallDir)\Railroader_Data\Managed\UnityModManager\;
-            $(UnityInstallDir)\Data\Managed\
-        </ReferencePath>
+         </ReferencePath>
         <AssemblySearchPaths>$(AssemblySearchPaths);$(ReferencePath);</AssemblySearchPaths>
 		<SignToolPath>C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\</SignToolPath>
 		<Cert-Thumb>2ce2b8a98a59ffd407ada2e94f233bf24a0e68b9</Cert-Thumb>
