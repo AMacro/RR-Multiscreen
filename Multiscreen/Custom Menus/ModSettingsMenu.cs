@@ -10,9 +10,7 @@ using Analytics;
 using Helpers;
 using Multiscreen.Util;
 using Logger = Multiscreen.Util.Logger;
-
-
-
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrayNotify;
 
 namespace Multiscreen.CustomMenu;
 
@@ -121,13 +119,45 @@ public class ModSettingsMenu : MonoBehaviour
 
                     builder.Spacer().Height(20f);
 
-                    builder.AddField("UI Scale", builder.AddSlider(() => Multiscreen.settings.secondDisplayScale, () => string.Format("{0}%", Mathf.Round(Multiscreen.settings.secondDisplayScale * 100f)),
-                   delegate (float f)
-                   {
-                       Multiscreen.settings.secondDisplayScale = f;
-                       WindowUtils.UpdateScale();
-                   },
-                   0.2f, 2f, false));
+                    builder.AddField("UI Scale", builder.AddSlider(() => Multiscreen.settings.secondDisplayScale, () => string.Format("{0}%", Mathf.Round(Multiscreen.settings.secondDisplayScale * 100f)),delegate (float f)
+                    {
+                        Multiscreen.settings.secondDisplayScale = f;
+                        WindowUtils.UpdateScale();
+                    },
+                    0.2f, 2f, false));
+
+                    
+                    builder.AddField("Solid Background",builder.HStack(delegate (UIPanelBuilder builder)
+                    {
+                        builder.AddToggle(() => Multiscreen.settings.solidBG, isOn =>
+                        {
+                            Multiscreen.settings.solidBG = isOn;
+                            Multiscreen.background.enabled = isOn;
+                            builder.Rebuild();
+                        });
+
+                        builder.Spacer(2f);
+
+                        builder.AddColorDropdown(Multiscreen.settings.bgColour, colour => 
+                        {
+                            UnityEngine.Color temp = Multiscreen.background.color;
+                            UnityEngine.Color newCol;
+                            if (ColorUtility.TryParseHtmlString(colour, out newCol))
+                            {
+                                Multiscreen.settings.bgColour = colour;
+                                Multiscreen.background.color = newCol;
+                            }
+                            else
+                            {
+                                Multiscreen.background.color = temp;
+                            }
+                            //Logger.LogInfo(colour);
+                        }
+                        ).Width(60f);
+                    })
+                    );
+
+                    //});
                     /*
                     builder.AddField("Full Screen", builder.AddToggle(() => Screen.fullScreen, delegate (bool en)
                     {

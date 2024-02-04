@@ -16,8 +16,9 @@ public class Settings : UnityModManager.ModSettings, IDrawable
     //[Draw("Second Display", Tooltip = "This is the Unity Display number: -1 not set, must be >= 1")]
     public int gameDisplay = -1;
     public int secondDisplay = -1;
-
     public float secondDisplayScale = 1f;
+    public bool solidBG = false;
+    public string bgColour = "000000";
  
     [Space(10)]
     [Draw("Logging Level", Tooltip = "Amount of debug logging to capture."/*, VisibleOn = "ShowAdvancedSettings|true"*/)]

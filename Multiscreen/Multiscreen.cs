@@ -10,6 +10,7 @@ using Analytics;
 using Helpers;
 using TMPro;
 using Logger = Multiscreen.Util.Logger;
+using System.Drawing;
 
 
 namespace Multiscreen;
@@ -21,6 +22,7 @@ public static class Multiscreen
     public static int gameDisplay = 0;
     public static int secondDisplay = 1;
     public static int targetDisplay = 0;
+    public static RawImage background;
 
     //private const string LOG_FILE = "multiscreen.log";
 
@@ -244,6 +246,21 @@ public static class Multiscreen
         myCanvas.sortingOrder = 1;
         myCanvas.worldCamera = myCamera;
         myCanvas.targetDisplay = targetDisplay;
+
+        background = myGO.AddComponent<RawImage>();
+
+        background.enabled = Multiscreen.settings.solidBG;
+
+        UnityEngine.Color newCol;
+
+        if (ColorUtility.TryParseHtmlString(Multiscreen.settings.bgColour, out newCol))
+        {
+            background.color = newCol;
+        }else
+        {
+            Multiscreen.settings.bgColour = "000000";
+            background.color = UnityEngine.Color.black;
+        }
 
         myGO.AddComponent<CanvasScaler>();
         myGO.AddComponent<GraphicRaycaster>();

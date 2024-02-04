@@ -68,11 +68,42 @@ public static class SettingsBuilderPatch
                    0.2f, 2f, false));
         slider.RectTransform.name = "Multiscreen UI Scale";
 
+        //Add our secondary display BG settings
+        IConfigurableElement bgSet = builder.AddField("Solid Background", builder.HStack(delegate (UIPanelBuilder builder)
+        {
+            builder.AddToggle(() => Multiscreen.settings.solidBG, isOn =>
+            {
+                Multiscreen.settings.solidBG = isOn;
+                Multiscreen.background.enabled = isOn;
+                builder.Rebuild();
+            });
+
+            builder.Spacer(2f);
+
+            builder.AddColorDropdown(Multiscreen.settings.bgColour, colour =>
+            {
+                UnityEngine.Color temp = Multiscreen.background.color;
+                UnityEngine.Color newCol;
+                if (ColorUtility.TryParseHtmlString(colour, out newCol))
+                {
+                    Multiscreen.settings.bgColour = colour;
+                    Multiscreen.background.color = newCol;
+                }
+                else
+                {
+                    Multiscreen.background.color = temp;
+                }
+                //Logger.LogInfo(colour);
+            }
+            ).Width(60f);
+        }));
+
         //position beneath vanilla slider
         if (sibling != null)
         {
             Logger.LogDebug($"slider rect: {slider.RectTransform.name} Index: {slider.RectTransform.GetSiblingIndex()}");
             slider.RectTransform.SetSiblingIndex(sibling.GetSiblingIndex()+1);
+            bgSet.RectTransform.SetSiblingIndex(slider.RectTransform.GetSiblingIndex() + 1);
         }
         
 
