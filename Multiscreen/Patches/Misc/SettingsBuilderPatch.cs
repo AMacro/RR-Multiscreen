@@ -14,7 +14,7 @@ using Logger = Multiscreen.Util.Logger;
 
 namespace Multiscreen.Patches.Misc;
 
-[HarmonyPatch(typeof(SettingsBuilder))]
+[HarmonyPatch(typeof(PreferencesBuilder))]
 public static class SettingsBuilderPatch
 {
     /*
@@ -34,7 +34,7 @@ public static class SettingsBuilderPatch
     }*/
     
     [HarmonyPostfix]
-    [HarmonyPatch(typeof(SettingsBuilder), nameof(SettingsBuilder.BuildTabGraphics))]
+    [HarmonyPatch(typeof(PreferencesBuilder), nameof(PreferencesBuilder.BuildTabGraphics))]
     private static void BuildTabGraphics(UIPanelBuilder builder)
     {
         //Canvas - Modals/UI.PreferencesWindow.PreferencesWindow/Content/Tab View(Clone)/Content Holder/Content/Field Row(Clone)

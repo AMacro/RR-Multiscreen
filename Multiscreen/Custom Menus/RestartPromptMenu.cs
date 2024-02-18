@@ -33,7 +33,7 @@ public class RestartPromptMenu : MonoBehaviour
 
         contentPanel = GameObject.Find("Settings Menu(Clone)/Content");
 
-        assets = this.transform.GetComponent<SettingsMenu>().panelAssets;
+        assets = this.transform.GetComponent<PreferencesMenu>().panelAssets;
 
         oldGameDisplay = newGameDisplay = Multiscreen.gameDisplay;
         oldSecondDisplay = newSecondDisplay = Multiscreen.secondDisplay;

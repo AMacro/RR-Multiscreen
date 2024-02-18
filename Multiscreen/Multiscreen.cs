@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using HarmonyLib;
 using JetBrains.Annotations;
 using UnityEngine.UI;
@@ -10,7 +9,6 @@ using Analytics;
 using Helpers;
 using TMPro;
 using Logger = Multiscreen.Util.Logger;
-using System.Drawing;
 
 
 namespace Multiscreen;
@@ -111,7 +109,7 @@ public static class Multiscreen
         }
         catch (Exception ex)
         {
-            Logger.LogInfo("Failed to load: {ex}");
+            Logger.LogInfo($"Failed to load: {ex.Message}\r\n{ex.StackTrace}");
             harmony?.UnpatchAll();
             return false;
         }

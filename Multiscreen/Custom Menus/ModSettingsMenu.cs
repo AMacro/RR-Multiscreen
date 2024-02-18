@@ -10,7 +10,6 @@ using Analytics;
 using Helpers;
 using Multiscreen.Util;
 using Logger = Multiscreen.Util.Logger;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrayNotify;
 
 namespace Multiscreen.CustomMenu;
 
@@ -30,11 +29,11 @@ public class ModSettingsMenu : MonoBehaviour
         TextMeshProUGUI title = GetComponentInChildren<TextMeshProUGUI>();
         title.text = "Multiscreen";
   
-        GameObject.DestroyImmediate(GameObject.Find("Settings Menu(Clone)/Content/Tab View(Clone)"));
+        GameObject.DestroyImmediate(GameObject.Find("Preferences Menu(Clone)/Content/Tab View(Clone)"));
 
-        contentPanel = GameObject.Find("Settings Menu(Clone)/Content");
+        contentPanel = GameObject.Find("Preferences Menu(Clone)/Content");
 
-        assets = this.transform.GetComponent<SettingsMenu>().panelAssets;
+        assets = this.transform.GetComponent<PreferencesMenu>().panelAssets;
 
         oldGameDisplay = newGameDisplay = Multiscreen.gameDisplay;
         oldSecondDisplay = newSecondDisplay = Multiscreen.secondDisplay;

@@ -12,7 +12,7 @@ public static class MenuManagerPatch
 {
     public static MainMenu _instance;
     public static MenuManager _MMinstance;
-    public static SettingsMenu ModMenu;
+    public static PreferencesMenu ModMenu;
     
     [HarmonyPostfix]
     [HarmonyPatch(typeof(MainMenu), nameof(MainMenu.Awake))]
@@ -60,7 +60,7 @@ public static class MenuManagerPatch
     {
         if (_MMinstance != null)
         {
-            ModMenu = UnityEngine.Object.Instantiate<SettingsMenu>(_MMinstance.settingsMenu);
+            ModMenu = UnityEngine.Object.Instantiate<PreferencesMenu>(_MMinstance.preferencesMenu);
             ModMenu.transform.gameObject.AddComponent<ModSettingsMenu>();
             _MMinstance.navigationController.Push(ModMenu);
            
