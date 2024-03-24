@@ -33,7 +33,7 @@ namespace Multiscreen.Util
             else
             {
                 newParent = modalParent;
-                //targetWindow.transform.SetLossyScale(new Vector3(1, 1, 1));
+                targetWindow.transform.SetLossyScale(modalParent.transform.lossyScale);
             }
 
             if (newParent != null)
@@ -61,6 +61,9 @@ namespace Multiscreen.Util
             {
                 targetWindow.SetDisplay(true);
             }
+
+            Window win = targetWindow.GetComponentInChildren<Window>();
+            win.ClampToParentBounds();
         }
 
         public static void UpdateScale()

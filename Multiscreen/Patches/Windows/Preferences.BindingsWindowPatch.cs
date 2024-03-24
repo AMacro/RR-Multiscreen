@@ -16,7 +16,7 @@ public static class BindingsWindowPatch
     private static bool Awake(BindingsWindow __instance)
     {
         _instance = __instance;
-        Logger.LogTrace($"PreferencesWindow.Awake() {__instance.name}");
+        Logger.LogTrace($"PreferencesBindingsWindow.Awake() {__instance.name}");
         //__instance.SetDisplay(true);
         return true;
     }
