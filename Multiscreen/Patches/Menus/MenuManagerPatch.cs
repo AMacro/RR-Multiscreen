@@ -30,7 +30,7 @@ public static class MenuManagerPatch
         Button modSettings = null;
         foreach (Button button in buttons)
         {
-            if(button.GetComponentInChildren<TMP_Text>()?.text == "Settings" )
+            if(button.GetComponentInChildren<TMP_Text>()?.text == "Preferences" )
                 insertindex= button.transform.GetSiblingIndex() + 1;
 
             if (button.GetComponentInChildren<TMP_Text>()?.text == "Multiscreen Mod")
