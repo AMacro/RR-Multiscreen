@@ -26,21 +26,4 @@ public static class PlacerWindowPatch
         __result = _instance;
         return false;
     }
-
-    /*
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(MapWindow), nameof(MapWindow.OnClick))]
-    private static bool OnClick(MapWindow __instance)
-    {
-        Multiscreen.Log($"MapWindow.OnClick() Alt: {GameInput.IsAltDown}");
-
-        if (!GameInput.IsAltDown)
-            return true;
-
-
-
-        return true;
-
-    }
-    */
 }

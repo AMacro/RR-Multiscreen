@@ -10,6 +10,7 @@ using Analytics;
 using Helpers;
 using Multiscreen.Util;
 using Logger = Multiscreen.Util.Logger;
+using System;
 
 namespace Multiscreen.CustomMenu;
 
@@ -17,13 +18,22 @@ public class ModSettingsMenu : MonoBehaviour
 {
     public GameObject contentPanel;
     public UIBuilderAssets assets;
+    public static readonly UIState<string> SelectedTab = new UIState<string>("disp");
+    List<DisplayInfo> displays = new();
+    List<int> values = new();
+
+    private int selectedDisplay = 0;
 
     public int newGameDisplay;
     public int oldGameDisplay;
     public int newSecondDisplay;
     public int oldSecondDisplay;
 
-    // Token: 0x06000AA5 RID: 2725 RVA: 0x00054B67 File Offset: 0x00052D67
+    public List<DisplaySettings> newDisplaySettings = new List<DisplaySettings>();
+    public List<DisplaySettings> oldDisplaySettings = new List<DisplaySettings>();
+    public List<string> DisplayModes = new List<string> { "Disabled", "Main Game", "Secondary (Game Background)","Secondary (Solid Background)", "Full Screen Map", "CTC"};
+
+
     private void Awake()
     {
         TextMeshProUGUI title = GetComponentInChildren<TextMeshProUGUI>();
@@ -37,6 +47,50 @@ public class ModSettingsMenu : MonoBehaviour
 
         oldGameDisplay = newGameDisplay = Multiscreen.gameDisplay;
         oldSecondDisplay = newSecondDisplay = Multiscreen.secondDisplay;
+
+        //get all displays connected to the system
+        Screen.GetDisplayLayout(displays);
+        values = displays.Select((DisplayInfo r, int i) => i).ToList();
+           
+        int mainDisp = displays.FindIndex(s => s.Equals(Screen.mainWindowDisplayInfo));
+
+        Logger.LogInfo("Pre-loop");
+
+        //preload the old display settings
+        /*DisplaySettings currDisp = new DisplaySettings();
+        oldDisplaySettings.Add(currDisp);
+        currDisp = new DisplaySettings();
+        oldDisplaySettings.Add(currDisp);
+        currDisp = new DisplaySettings();
+        oldDisplaySettings.Add(currDisp);*/
+        
+        /*
+        for (int i = 1; i < values.Count; i++)
+        {
+            DisplaySettings currDisp = new DisplaySettings();
+            Logger.LogInfo("Pre-if");
+            if (i == mainDisp)
+            {
+                currDisp.mode = DisplayMode.Main;
+                currDisp.AllowWindows = true;
+            }
+            Logger.LogInfo("Post-if");
+            currDisp.name = displays[i].name;
+            currDisp.nativeWidth = displays[i].width;
+            currDisp.nativeHeight = displays[i].height;
+
+            Logger.LogInfo("Pre-append");
+            oldDisplaySettings.Add(currDisp);
+        }
+
+        Logger.LogInfo("Pre-copy");
+        newDisplaySettings = oldDisplaySettings.Select(a => a.Clone()).ToList();
+        Logger.LogInfo("Post-copy");
+        Logger.LogInfo($"Old: {oldDisplaySettings.First().scale}, New: {newDisplaySettings.First().scale}");
+        oldDisplaySettings.First().scale = 5.0f;
+        Logger.LogInfo($"Old: {oldDisplaySettings.First().scale}, New: {newDisplaySettings.First().scale}");
+       */
+
     } 
 
     private void Start()
@@ -69,105 +123,107 @@ public class ModSettingsMenu : MonoBehaviour
             {
                 Logger.LogTrace("PanelCreate");
 
-                UIPanel.Create(contentPanel.transform.GetComponent<RectTransform>(), assets, delegate (UIPanelBuilder builder)
-                {
-                    builder.AddSection("Game Display");
+                builder.AddTabbedPanels(SelectedTab, BuildTabs);
 
-                    List<DisplayInfo> displays = new();
-                    Screen.GetDisplayLayout(displays);
+                //UIPanel.Create(contentPanel.transform.GetComponent<RectTransform>(), assets, delegate (UIPanelBuilder builder)
+                //{
+                //    builder.AddSection("Game Display");
 
-                    List<int> values = displays.Select((DisplayInfo r, int i) => i).ToList();
+                //    List<DisplayInfo> displays = new();
+                //    Screen.GetDisplayLayout(displays);
 
-                    builder.AddField("Display", builder.AddDropdownIntPicker(values, oldGameDisplay, (int i) => (i >= 0) ? $"Display: {i} ({displays[i].name})" : $"00", canWrite: true, delegate (int i)
-                    {
-                        Logger.LogDebug($"Selected Display: {i}");
-                        if(i == oldSecondDisplay)
-                        {
-                            newSecondDisplay = oldGameDisplay;
-                        }
-                        newGameDisplay = i;
+                //    List<int> values = displays.Select((DisplayInfo r, int i) => i).ToList();
 
-                    }));
+                //    builder.AddField("Display", builder.AddDropdownIntPicker(values, oldGameDisplay, (int i) => (i >= 0) ? $"Display: {i} ({displays[i].name})" : $"00", canWrite: true, delegate (int i)
+                //    {
+                //        Logger.LogDebug($"Selected Display: {i}");
+                //        if(i == oldSecondDisplay)
+                //        {
+                //            newSecondDisplay = oldGameDisplay;
+                //        }
+                //        newGameDisplay = i;
 
-                    /*
-                    builder.AddField("Full Screen", builder.AddToggle(() => Screen.fullScreen, delegate (bool en)
-                    {
-                        Multiscreen.Log($"Game Display Full Screen: {en}");
-                    })).Disable(true);
-                    */
+                //    }));
 
-                    builder.AddSection("Secondary Display");
+                //    /*
+                //    builder.AddField("Full Screen", builder.AddToggle(() => Screen.fullScreen, delegate (bool en)
+                //    {
+                //        Multiscreen.Log($"Game Display Full Screen: {en}");
+                //    })).Disable(true);
+                //    */
 
-                    builder.AddField("Display", builder.AddDropdownIntPicker(values, oldSecondDisplay, (int i) => (i >= 0) ? $"Display: {i} ({displays[i].name})" : $"00", canWrite: true, delegate (int i)
-                    {
-                        Logger.LogDebug($"Secondary Display: {i}");
-                        if (i == 0)
-                        {
-                            oldSecondDisplay = -1;
-                            return;
-                        }
-                            
-                        if (i == oldGameDisplay)
-                        {
-                            newGameDisplay = oldSecondDisplay;
-                        }
-                        newSecondDisplay = i;
-                        //Screen.MoveMainWindowTo(displays[i], new Vector2Int(0, 0));
-                    }));
-                    builder.AddLabel("Note: Display 0 can not be used for the Secondary Display due to a Unity Engine limitation.\r\nA work-around for this on Windows is to change your Primary display in the Windows Display settings.");
+                //    builder.AddSection("Secondary Display");
 
-                    builder.Spacer().Height(20f);
+                //    builder.AddField("Display", builder.AddDropdownIntPicker(values, oldSecondDisplay, (int i) => (i >= 0) ? $"Display: {i} ({displays[i].name})" : $"00", canWrite: true, delegate (int i)
+                //    {
+                //        Logger.LogDebug($"Secondary Display: {i}");
+                //        if (i == 0)
+                //        {
+                //            oldSecondDisplay = -1;
+                //            return;
+                //        }
 
-                    builder.AddField("UI Scale", builder.AddSlider(() => Multiscreen.settings.secondDisplayScale, () => string.Format("{0}%", Mathf.Round(Multiscreen.settings.secondDisplayScale * 100f)),delegate (float f)
-                    {
-                        Multiscreen.settings.secondDisplayScale = f;
-                        WindowUtils.UpdateScale();
-                    },
-                    0.2f, 2f, false));
+                //        if (i == oldGameDisplay)
+                //        {
+                //            newGameDisplay = oldSecondDisplay;
+                //        }
+                //        newSecondDisplay = i;
+                //        //Screen.MoveMainWindowTo(displays[i], new Vector2Int(0, 0));
+                //    }));
+                //    builder.AddLabel("Note: Display 0 can not be used for the Secondary Display due to a Unity Engine limitation.\r\nA work-around for this on Windows is to change your Primary display in the Windows Display settings.");
 
-                    
-                    builder.AddField("Solid Background",builder.HStack(delegate (UIPanelBuilder builder)
-                    {
-                        builder.AddToggle(() => Multiscreen.settings.solidBG, isOn =>
-                        {
-                            Multiscreen.settings.solidBG = isOn;
-                            Multiscreen.background.enabled = isOn;
-                            builder.Rebuild();
-                        });
+                //    builder.Spacer().Height(20f);
 
-                        builder.Spacer(2f);
+                //    builder.AddField("UI Scale", builder.AddSlider(() => Multiscreen.settings.secondDisplayScale, () => string.Format("{0}%", Mathf.Round(Multiscreen.settings.secondDisplayScale * 100f)),delegate (float f)
+                //    {
+                //        Multiscreen.settings.secondDisplayScale = f;
+                //        WindowUtils.UpdateScale();
+                //    },
+                //    0.2f, 2f, false));
 
-                        builder.AddColorDropdown(Multiscreen.settings.bgColour, colour => 
-                        {
-                            UnityEngine.Color temp = Multiscreen.background.color;
-                            UnityEngine.Color newCol;
-                            if (ColorUtility.TryParseHtmlString(colour, out newCol))
-                            {
-                                Multiscreen.settings.bgColour = colour;
-                                Multiscreen.background.color = newCol;
-                            }
-                            else
-                            {
-                                Multiscreen.background.color = temp;
-                            }
-                            //Logger.LogInfo(colour);
-                        }
-                        ).Width(60f);
-                    })
-                    );
 
-                    //});
-                    /*
-                    builder.AddField("Full Screen", builder.AddToggle(() => Screen.fullScreen, delegate (bool en)
-                    {
-                        //Screen.fullScreen = en;
-                        Multiscreen.Log($"Secondary Display Full Screen: {en}");
-                    }));
-                    */
+                //    builder.AddField("Solid Background",builder.HStack(delegate (UIPanelBuilder builder)
+                //    {
+                //        builder.AddToggle(() => Multiscreen.settings.solidBG, isOn =>
+                //        {
+                //            Multiscreen.settings.solidBG = isOn;
+                //            Multiscreen.background.enabled = isOn;
+                //            builder.Rebuild();
+                //        });
 
-                    builder.AddExpandingVerticalSpacer();
+                //        builder.Spacer(2f);
 
-                });
+                //        builder.AddColorDropdown(Multiscreen.settings.bgColour, colour => 
+                //        {
+                //            UnityEngine.Color temp = Multiscreen.background.color;
+                //            UnityEngine.Color newCol;
+                //            if (ColorUtility.TryParseHtmlString(colour, out newCol))
+                //            {
+                //                Multiscreen.settings.bgColour = colour;
+                //                Multiscreen.background.color = newCol;
+                //            }
+                //            else
+                //            {
+                //                Multiscreen.background.color = temp;
+                //            }
+                //            //Logger.LogInfo(colour);
+                //        }
+                //        ).Width(60f);
+                //    })
+                //    );
+
+                //    //});
+                //    /*
+                //    builder.AddField("Full Screen", builder.AddToggle(() => Screen.fullScreen, delegate (bool en)
+                //    {
+                //        //Screen.fullScreen = en;
+                //        Multiscreen.Log($"Secondary Display Full Screen: {en}");
+                //    }));
+                //    */
+
+                //    builder.AddExpandingVerticalSpacer();
+
+                //});
 
                 builder.Spacer(16f);
                 builder.HStack(delegate (UIPanelBuilder builder)
@@ -223,6 +279,88 @@ public class ModSettingsMenu : MonoBehaviour
         }
     }
 
+    private void BuildTabs(UITabbedPanelBuilder builder)
+    {
+        builder.AddTab("Display", "disp", BuildDisplayPanel);
+        builder.AddTab("Windows", "win", BuildWindowsPanel);
+    }
+    private void BuildDisplayPanel(UIPanelBuilder builder)
+    {
+
+        builder.AddField("Display", builder.AddDropdownIntPicker(values, selectedDisplay, (int i) => (i >= 0) ? $"Display: {i} ({displays[i].name})" : $"00", canWrite: true, delegate (int i)
+        {
+            Logger.LogDebug($"Selected Display: {i}");
+
+            //todo load display settings
+
+        }));
+
+        List<int> DisplayModeValues = new();
+        DisplayModeValues = DisplayModes.Select((String r, int i) => i).ToList();
+
+        builder.AddField("Display Mode", builder.AddDropdownIntPicker(DisplayModeValues, 0, (int i) => (i >= 0) ? DisplayModes[i].ToString() : DisplayModes[0], canWrite: true, delegate (int i)
+        {
+            Logger.LogDebug($"Selected Display: {i}");
+
+            //todo load display settings
+
+        }));
+
+        builder.AddField("UI Scale", builder.AddSlider(() => Multiscreen.settings.secondDisplayScale, () => string.Format("{0}%", Mathf.Round(Multiscreen.settings.secondDisplayScale * 100f)), delegate (float f)
+        {
+            Multiscreen.settings.secondDisplayScale = f;
+            WindowUtils.UpdateScale();
+        },
+        0.2f, 2f, false));
+
+
+        builder.AddField("Solid Background", builder.HStack(delegate (UIPanelBuilder builder)
+        {
+            builder.AddToggle(() => Multiscreen.settings.solidBG, isOn =>
+            {
+                Multiscreen.settings.solidBG = isOn;
+                Multiscreen.background.enabled = isOn;
+                builder.Rebuild();
+            });
+
+            builder.Spacer(2f);
+
+            builder.AddColorDropdown(Multiscreen.settings.bgColour, colour =>
+            {
+                UnityEngine.Color temp = Multiscreen.background.color;
+                UnityEngine.Color newCol;
+                if (ColorUtility.TryParseHtmlString(colour, out newCol))
+                {
+                    Multiscreen.settings.bgColour = colour;
+                    Multiscreen.background.color = newCol;
+                }
+                else
+                {
+                    Multiscreen.background.color = temp;
+                }
+                //Logger.LogInfo(colour);
+            }
+            ).Width(60f);
+        })
+        );
+
+        builder.AddField("Allow Windows", builder.AddToggle(() => Multiscreen.settings.solidBG, isOn =>
+        {
+            Multiscreen.settings.solidBG = isOn;
+            Multiscreen.background.enabled = isOn;
+            builder.Rebuild();
+        }));
+
+
+        builder.AddExpandingVerticalSpacer();
+    }
+
+    private void BuildWindowsPanel(UIPanelBuilder builder)
+    {
+
+
+        builder.AddExpandingVerticalSpacer();
+    }
     private void ShowRestart()
     {
         EarlyAccessSplash earlyAccessSplash = UnityEngine.Object.FindObjectOfType<EarlyAccessSplash>();

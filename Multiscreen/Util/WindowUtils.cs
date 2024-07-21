@@ -1,4 +1,5 @@
-﻿using UI.Common;
+﻿using TMPro;
+using UI.Common;
 using UnityEngine;
 
 namespace Multiscreen.Util
@@ -15,7 +16,7 @@ namespace Multiscreen.Util
             Logger.LogVerbose($"SetDisplay({targetWindow?.name}, {secondary})\r\n\tCurrent Transform: {targetWindow?.transform?.name}\r\n\tCurrent Transform Parent: {targetWindow?.transform?.parent?.name}");
 
             GameObject newParent = null;
-            GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK);
+            GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK + "1");
             GameObject modalParent = GameObject.Find(Multiscreen.MODALS);
 
             if (undockParent != null)
@@ -40,8 +41,6 @@ namespace Multiscreen.Util
             {
                 Logger.LogDebug($"SetDisplay({targetWindow?.name}, {secondary}) New parent: {newParent.name}");
                 targetWindow.transform.SetParent(newParent.transform);
-                //Window win = targetWindow.GetComponentInChildren<Window>();
-                //win.ShowWindow();
 
 
             }
@@ -53,6 +52,19 @@ namespace Multiscreen.Util
         {
             Logger.LogDebug($"ToggleDisplay({targetWindow?.name}) Current parent: \"{targetWindow.transform.parent.name}\"");
 
+            int display = targetWindow.GetDisplayForWindow();
+
+            if (display == 0)
+            {
+                targetWindow.SetDisplay(true);
+            }
+            else
+            {
+                targetWindow.SetDisplay(false);
+            }
+
+            /*
+
             if (targetWindow.transform.parent.name == Multiscreen.UNDOCK)
             {
                 targetWindow.SetDisplay(false);
@@ -61,6 +73,7 @@ namespace Multiscreen.Util
             {
                 targetWindow.SetDisplay(true);
             }
+            */
 
             Window win = targetWindow.GetComponentInChildren<Window>();
             win.ClampToParentBounds();
@@ -68,7 +81,7 @@ namespace Multiscreen.Util
 
         public static void UpdateScale()
         {
-            GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK);
+            GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK+"1");
 
             if (undockParent == null)
                 return;
@@ -88,6 +101,29 @@ namespace Multiscreen.Util
             targetTransform.localScale = new Vector3(targetTransform.localScale.x * (lossyScale.x / targetTransform.lossyScale.x),
                                                      targetTransform.localScale.y * (lossyScale.y / targetTransform.lossyScale.y),
                                                      targetTransform.localScale.z * (lossyScale.z / targetTransform.lossyScale.z));
+        }
+
+        public static int GetDisplayForWindow(this Component window)
+        {
+            int display = 0;
+
+            string canvasName = window.transform.parent.name;
+            Logger.LogDebug($"GetDisplayForWindow({window.name}): canvas: {canvasName}");
+
+            if ( canvasName == Multiscreen.MODALS)
+                return 0;
+            
+            if(canvasName.StartsWith(Multiscreen.UNDOCK) && int.TryParse(canvasName.Substring(Multiscreen.UNDOCK.Length), out  display))
+            {
+                Logger.LogDebug($"GetDisplayForWindow({window.name}): display: {display}");
+                return display;
+            }
+            else
+            {
+                Logger.LogDebug($"GetDisplayForWindow({window.name}): StartsWith:{canvasName.StartsWith(Multiscreen.UNDOCK)} TryParse: {int.TryParse(canvasName.Substring(Multiscreen.UNDOCK.Length), out display)}");
+            }
+
+            return 0;
         }
     }
 }

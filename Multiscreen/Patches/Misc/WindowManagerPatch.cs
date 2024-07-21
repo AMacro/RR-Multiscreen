@@ -22,7 +22,7 @@ public static class WindowManager_Patch
     {
         Logger.LogVerbose($"Hit Test({mousePosition})");
 
-        GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK);
+        GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK + "1");
 
         if (undockParent == null)
             return true;

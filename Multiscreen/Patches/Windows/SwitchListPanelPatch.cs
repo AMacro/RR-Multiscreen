@@ -27,22 +27,4 @@ public static class SwitchListPanelPatch
         __result = _instance;
         return false;
     }
-
-    /*
-     * Not implemented in company window
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(CompanyWindow), nameof(CompanyWindow.OnClick))]
-    private static bool OnClick(CompanyWindow __instance)
-    {
-        Multiscreen.Log($"MapWindow.OnClick() Alt: {GameInput.IsAltDown}");
-
-        if (!GameInput.IsAltDown)
-            return true;
-
-
-
-        return true;
-
-    }
-    */
 }

@@ -22,9 +22,7 @@ public static class Multiscreen
     public static int targetDisplay = 0;
     public static RawImage background;
 
-    //private const string LOG_FILE = "multiscreen.log";
-
-    public const string UNDOCK = "Canvas - Undock";
+    public const string UNDOCK = "Canvas - Undock #";
     public const string MODALS = "Canvas - Modals";
 
     [UsedImplicitly]
@@ -32,6 +30,8 @@ public static class Multiscreen
     {
         ModEntry = modEntry;
         settings = Settings.Load<Settings>(modEntry);
+        settings.UpgradeSettings();
+        
         ModEntry.OnGUI = settings.Draw;
         ModEntry.OnSaveGUI = settings.Save;
         ModEntry.OnLateUpdate += Multiscreen.LateUpdate;
@@ -40,8 +40,6 @@ public static class Multiscreen
 
         try
         {
-            //File.Delete(LOG_FILE);
-
             //Apply patches
             Logger.LogInfo("Patching...");
             harmony = new Harmony(ModEntry.Info.Id);
@@ -235,7 +233,7 @@ public static class Multiscreen
         myCamGO.SetActive(true);
 
         // Canvas
-        myGO = new GameObject(UNDOCK);
+        myGO = new GameObject(UNDOCK + targetDisplay);
         myGO.layer = 5; //GUI layer
 
         myCanvas = myGO.AddComponent<Canvas>();
