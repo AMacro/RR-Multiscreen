@@ -9,6 +9,10 @@ using Analytics;
 using Helpers;
 using TMPro;
 using Logger = Multiscreen.Util.Logger;
+using GalaSoft.MvvmLight.Messaging;
+using Game.Events;
+using Multiscreen.Patches.Menus;
+using UnityEngine.SceneManagement;
 
 
 namespace Multiscreen;
@@ -21,6 +25,8 @@ public static class Multiscreen
     public static int secondDisplay = 1;
     public static int targetDisplay = 0;
     public static RawImage background;
+
+    public static bool userPrefFullScr;
 
     //private const string LOG_FILE = "multiscreen.log";
 
@@ -41,6 +47,10 @@ public static class Multiscreen
         try
         {
             //File.Delete(LOG_FILE);
+
+            //get user preference
+            userPrefFullScr = Screen.fullScreen;
+            Logger.Log($"User Preference 'Full screen': {userPrefFullScr}");
 
             //Apply patches
             Logger.LogInfo("Patching...");
@@ -106,6 +116,16 @@ public static class Multiscreen
             }
            
             Activate();
+
+            //SceneManager.sceneLoaded += (Scene s, LoadSceneMode mode )=>
+            //                                {
+            //                                    Logger.Log($"Scene Loaded! {s.name}");
+            //                                    if(s.name == "MainMenu" && userPrefFullScr)
+            //                                    {
+            //                                        Screen.fullScreen = true;
+            //                                    }
+            //                                }; 
+            
         }
         catch (Exception ex)
         {

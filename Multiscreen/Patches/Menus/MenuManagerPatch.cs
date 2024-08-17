@@ -1,9 +1,12 @@
 ﻿using HarmonyLib;
 using UnityEngine.UI;
+using UnityEngine;
 using UI.Menu;
 using TMPro;
 using Multiscreen.CustomMenu;
 using Multiscreen.Util;
+using Logger = Multiscreen.Util.Logger;
+using System.Collections;
 
 namespace Multiscreen.Patches.Menus;
 
@@ -53,6 +56,18 @@ public static class MenuManagerPatch
         Logger.LogTrace("MenuManager.Start()");
 
         _MMinstance = __instance;
+
+        __instance.StartCoroutine(WaitForLoad());
+
+        /*if ( Multiscreen.userPrefFullScr)
+            Screen.fullScreen = true;*/
+    }
+
+    private static IEnumerator WaitForLoad()
+    {
+        yield return new WaitForSecondsRealtime(2f);
+        if(Multiscreen.userPrefFullScr)
+            Screen.fullScreen = true;
 
     }
 
