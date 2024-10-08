@@ -1,0 +1,124 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Multiscreen</RootNamespace>
+    <SignAssembly>False</SignAssembly>
+    <FileVersion>1.5.3.0</FileVersion>
+    <AssemblyVersion>1.5.3.0</AssemblyVersion>
+    <Configurations>Debug;Release;MainBuild;BetaBuild</Configurations>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MainBuild|AnyCPU'">
+    <DefineConstants>TRACE;MAIN_VERSION</DefineConstants>
+    <OutputPath>bin\MainBuild\</OutputPath>
+    <AssemblyName>Multiscreen.Core.Main</AssemblyName>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='BetaBuild|AnyCPU'">
+    <DefineConstants>TRACE;BETA_VERSION</DefineConstants>
+    <OutputPath>bin\BetaBuild\</OutputPath>
+    <AssemblyName>Multiscreen.Core.Beta</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Krafs.Publicizer" Version="2.2.1" />
+    <PackageReference Include="UnityModManager" Version="0.27.5" />
+    <Publicize Include="Assembly-CSharp" IncludeCompilerGeneratedMembers="false" />
+  </ItemGroup>
+
+  <!-- Railroader -->
+  <ItemGroup Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='Release'">
+    <Reference Include="Assembly-CSharp" />
+  </ItemGroup> 
+  <ItemGroup Condition="'$(Configuration)'=='MainBuild'">
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(InstallDir)\Railroader_Data\Managed_Main\Assembly-CSharp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)'=='BetaBuild'">
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(InstallDir)\Railroader_Data\Managed_Beta\Assembly-CSharp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <!-- Mod Loader -->
+  <ItemGroup>
+    <Reference Include="Multiscreen">
+      <HintPath>../build/Multiscreen.dll</HintPath>
+    </Reference>
+               
+  </ItemGroup>
+
+  <!-- Third-Party -->
+  <ItemGroup>
+    <PackageReference Include="ErrorProne.NET.Structs" Version="0.4.0-beta.1" />
+    <PackageReference Include="Humanizer.Core" Version="2.14.1" />
+  </ItemGroup>
+  
+  <!-- Unity -->
+  <ItemGroup>
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="UnityEngine">
+      <HintPath>$(InstallDir)\Railroader_Data\Managed\</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>$(InstallDir)\Railroader_Data\Managed\</HintPath>
+    </Reference>
+    <Reference Include="Unity.InputSystem">
+      <HintPath>$(InstallDir)\Railroader_Data\Managed\</HintPath>
+    </Reference>
+	  <Reference Include="Unity.TextMeshPro">
+      <HintPath>$(InstallDir)\Railroader_Data\Managed\</HintPath>
+    </Reference>
+	  <Reference Include="UnityEngine.AssetBundleModule" />
+	  <Reference Include="UnityEngine.AudioModule" />
+	  <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(InstallDir)\Railroader_Data\Managed\</HintPath>
+    </Reference>
+	  <Reference Include="UnityEngine.IMGUIModule" />
+	  <Reference Include="UnityEngine.JSONSerializeModule" />
+	  <Reference Include="UnityEngine.PhysicsModule" />
+	  <Reference Include="UnityEngine.UI">
+      <HintPath>$(InstallDir)\Railroader_Data\Managed\</HintPath>
+    </Reference>
+	  <Reference Include="UnityEngine.UIModule">
+      <HintPath>$(InstallDir)\Railroader_Data\Managed\</HintPath>
+    </Reference>
+	  <Reference Include="UnityEngine.TextRenderingModule" />
+  </ItemGroup>
+
+  <Target Name="BuildBothVersions" AfterTargets="Build" Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='Release'">
+    <Message Text="Building Main version..." Importance="high" />
+    <MSBuild Projects="$(MSBuildProjectFile)" Properties="Configuration=MainBuild" Targets="Build" />
+
+    <Message Text="Building Beta version..." Importance="high" />
+    <MSBuild Projects="$(MSBuildProjectFile)" Properties="Configuration=BetaBuild" Targets="Build" />
+  </Target>
+
+  <Target Name="SignAssemblies" AfterTargets="BuildBothVersions" Condition="'$(Configuration)'=='Release' AND '$(Cert-Thumb)' != ''">
+    <Exec Command="&quot;$(SignToolPath)SignTool.exe&quot; sign /sha1 $(Cert-Thumb) /fd SHA256 /t http://timestamp.sectigo.com &quot;$(ProjectDir)bin\MainBuild\net48\Multiscreen.Core.Main.dll&quot;" />
+    <Exec Command="&quot;$(SignToolPath)SignTool.exe&quot; sign /sha1 $(Cert-Thumb) /fd SHA256 /t http://timestamp.sectigo.com &quot;$(ProjectDir)bin\BetaBuild\net48\Multiscreen.Core.Beta.dll&quot;" />
+  </Target>
+
+  <Target Name="CopyBuildOutputs" AfterTargets="BuildBothVersions" Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='Release'">
+    <ItemGroup>
+      <CoreBuildOutputs Include="$(ProjectDir)bin\MainBuild\net48\Multiscreen.Core.Main.dll" />
+      <CoreBuildOutputs Include="$(ProjectDir)bin\BetaBuild\net48\Multiscreen.Core.Beta.dll" />
+    </ItemGroup>
+    <Message Text="Copying files to: $(ProjectDir)..\build\" Importance="high" />
+    <Copy SourceFiles="@(CoreBuildOutputs)" DestinationFolder="$(ProjectDir)..\build\" />
+    <Message Text="Files copied." Importance="high" />
+  </Target>
+
+  <Target Name="PostBuildScript" AfterTargets="CopyBuildOutputs" Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='Release'">
+    <Exec Command="powershell -executionpolicy bypass -Command &quot;(../post-build.ps1 -Ver '$(FileVersion)' -GameDir '$(InstallDir)\Mods\Multiscreen' $(NoArchiveFlag))&quot;" />
+  </Target>
+
+  <PropertyGroup>
+    <NoArchiveFlag Condition="'$(Configuration)'=='Debug'">-NoArchive</NoArchiveFlag>
+    <NoArchiveFlag Condition="'$(Configuration)'=='Release'"></NoArchiveFlag>
+  </PropertyGroup>
+
+</Project>
