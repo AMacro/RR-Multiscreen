@@ -27,8 +27,6 @@ namespace Multiscreen.Util
             {
                 newParent = undockParent;
                 targetWindow.transform.SetLossyScale(new Vector3(Multiscreen.settings.secondDisplayScale, Multiscreen.settings.secondDisplayScale, Multiscreen.settings.secondDisplayScale));
-                
-
             }
             else
             {
@@ -42,11 +40,7 @@ namespace Multiscreen.Util
                 targetWindow.transform.SetParent(newParent.transform);
                 //Window win = targetWindow.GetComponentInChildren<Window>();
                 //win.ShowWindow();
-
-
             }
-             
-
         }
 
         public static void ToggleDisplay(this Component targetWindow) 

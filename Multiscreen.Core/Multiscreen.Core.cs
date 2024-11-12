@@ -9,6 +9,7 @@ using Analytics;
 using Helpers;
 using TMPro;
 using Logger = Multiscreen.Util.Logger;
+using Multiscreen.Util;
 
 namespace Multiscreen;
 
@@ -111,7 +112,13 @@ public static class Multiscreen
 
             }
            
-            Activate();            
+            Activate();
+
+            //Add our DisplayFocusManager to try to keep both windows active
+            GameObject displayManager = new GameObject("DisplayFocusManager");
+            displayManager.AddComponent<DisplayFocusManager>();
+            GameObject.DontDestroyOnLoad(displayManager);
+            displayManager.SetActive(true);
         }
         catch (Exception ex)
         {

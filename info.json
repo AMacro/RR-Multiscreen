@@ -1,6 +1,6 @@
 {
     "Id":  "Multiscreen",
-    "Version":  "1.5.3.0",
+    "Version":  "1.5.4.2",
     "DisplayName":  "Multiscreen",
     "Author":  "Macka",
     "EntryMethod":  "Multiscreen.MultiscreenLoader.Load",
