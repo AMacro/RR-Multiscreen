@@ -40,6 +40,14 @@ public static class Logger
             WriteLog($"[Debug] {msg}");
     }
 
+    public static void LogDebug(Func<object> resolver)
+    {
+        if (!(Multiscreen.settings.DebugLogging >= LogLevel.Debug))
+            return;
+
+        WriteLog($"[Debug] {resolver?.Invoke()}");
+    }
+
     public static void LogTrace(object msg)
     {
         if (Multiscreen.settings.DebugLogging >= LogLevel.Trace)

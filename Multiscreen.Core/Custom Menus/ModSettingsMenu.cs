@@ -15,13 +15,18 @@ namespace Multiscreen.CustomMenu;
 
 public class ModSettingsMenu : MonoBehaviour
 {
-    public GameObject contentPanel;
-    public UIBuilderAssets assets;
+    GameObject contentPanel;
+    UIBuilderAssets assets;
 
-    public int newGameDisplay;
-    public int oldGameDisplay;
-    public int newSecondDisplay;
-    public int oldSecondDisplay;
+    int newGameDisplay;
+    int oldGameDisplay;
+    int newSecondDisplay;
+    int oldSecondDisplay;
+    bool oldFocusManager;
+    bool oldSolidBg;
+    Color oldColour;
+    float oldScale;
+    float newScale;
 
     // Token: 0x06000AA5 RID: 2725 RVA: 0x00054B67 File Offset: 0x00052D67
     private void Awake()
@@ -37,6 +42,12 @@ public class ModSettingsMenu : MonoBehaviour
 
         oldGameDisplay = newGameDisplay = Multiscreen.gameDisplay;
         oldSecondDisplay = newSecondDisplay = Multiscreen.secondDisplay;
+
+        oldFocusManager = Multiscreen.focusManager;
+        oldSolidBg = Multiscreen.background.enabled;
+        oldColour = Multiscreen.background.color;
+        oldScale = Multiscreen.settings.secondDisplayScale;
+        newScale = oldScale;
     } 
 
     private void Start()
@@ -118,32 +129,30 @@ public class ModSettingsMenu : MonoBehaviour
 
                     builder.Spacer().Height(20f);
 
-                    builder.AddField("UI Scale", builder.AddSlider(() => Multiscreen.settings.secondDisplayScale, () => string.Format("{0}%", Mathf.Round(Multiscreen.settings.secondDisplayScale * 100f)),delegate (float f)
+                    builder.AddField("UI Scale", builder.AddSlider(() => newScale, () => string.Format("{0}%", Mathf.Round(newScale * 100f)),delegate (float f)
                     {
-                        Multiscreen.settings.secondDisplayScale = f;
-                        WindowUtils.UpdateScale();
+                        newScale = f;
+                        WindowUtils.UpdateScale(newScale);
                     },
                     0.2f, 2f, false));
 
                     
                     builder.AddField("Solid Background",builder.HStack(delegate (UIPanelBuilder builder)
                     {
-                        builder.AddToggle(() => Multiscreen.settings.solidBG, isOn =>
+                        builder.AddToggle(() => Multiscreen.background.enabled, isOn =>
                         {
-                            Multiscreen.settings.solidBG = isOn;
                             Multiscreen.background.enabled = isOn;
                             builder.Rebuild();
                         });
 
                         builder.Spacer(2f);
 
-                        builder.AddColorDropdown(Multiscreen.settings.bgColour, colour => 
+                        builder.AddColorDropdown(ColorHelper.HexFromColor(Multiscreen.background.color), colour => 
                         {
                             UnityEngine.Color temp = Multiscreen.background.color;
                             UnityEngine.Color newCol;
                             if (ColorUtility.TryParseHtmlString(colour, out newCol))
                             {
-                                Multiscreen.settings.bgColour = colour;
                                 Multiscreen.background.color = newCol;
                             }
                             else
@@ -156,14 +165,13 @@ public class ModSettingsMenu : MonoBehaviour
                     })
                     );
 
-                    //});
-                    /*
-                    builder.AddField("Full Screen", builder.AddToggle(() => Screen.fullScreen, delegate (bool en)
+
+                    builder.AddField("Focus Management", builder.AddToggle(() => Multiscreen.focusManager, delegate (bool en)
                     {
-                        //Screen.fullScreen = en;
-                        Multiscreen.Log($"Secondary Display Full Screen: {en}");
+                        Multiscreen.EnableDisplayFocusManager(en);
                     }));
-                    */
+
+                    builder.AddLabel("Focus management ensures each display is focused when the mouse is over it.");
 
                     builder.AddExpandingVerticalSpacer();
 
@@ -174,6 +182,14 @@ public class ModSettingsMenu : MonoBehaviour
                 {
                     builder.AddButton("Back", delegate
                     {
+                        Multiscreen.EnableDisplayFocusManager(oldFocusManager);
+
+                        Multiscreen.background.enabled = oldSolidBg;
+                        Multiscreen.background.color = oldColour;
+
+                        Multiscreen.settings.secondDisplayScale = oldScale;
+                        WindowUtils.UpdateScale(oldScale);
+
                         MenuManagerPatch._MMinstance.navigationController.Pop();
 
                     });
@@ -182,6 +198,14 @@ public class ModSettingsMenu : MonoBehaviour
 
                     builder.AddButton("Apply", delegate
                     {
+
+                        Multiscreen.settings.focusManager = Multiscreen.focusManager;
+
+                        Multiscreen.settings.solidBG = Multiscreen.background.enabled;
+                        Multiscreen.settings.bgColour = ColorHelper.HexFromColor(Multiscreen.background.color);
+
+                        Multiscreen.settings.secondDisplayScale = newScale;
+
                         List<DisplayInfo> displays = new();
                         Screen.GetDisplayLayout(displays);
 
@@ -216,6 +240,8 @@ public class ModSettingsMenu : MonoBehaviour
 
                             ShowRestart();
                         }
+
+                        MenuManagerPatch._MMinstance.navigationController.Pop();
 
                     });
                 });

@@ -21,6 +21,7 @@ public static class Multiscreen
     public static int secondDisplay = 1;
     public static int targetDisplay = 0;
     public static RawImage background;
+    public static bool focusManager;
 
     public static bool userPrefFullScr;
 
@@ -28,6 +29,7 @@ public static class Multiscreen
 
     public const string UNDOCK = "Canvas - Undock";
     public const string MODALS = "Canvas - Modals";
+    public const string DISPLAY_FOCUS_MANAGER = "DisplayFocusManager";
 
     [UsedImplicitly]
     private static bool Load(UnityModManager.ModEntry modEntry)
@@ -114,11 +116,8 @@ public static class Multiscreen
            
             Activate();
 
-            //Add our DisplayFocusManager to try to keep both windows active
-            GameObject displayManager = new GameObject("DisplayFocusManager");
-            displayManager.AddComponent<DisplayFocusManager>();
-            GameObject.DontDestroyOnLoad(displayManager);
-            displayManager.SetActive(true);
+            if(settings.focusManager)
+                EnableDisplayFocusManager();
         }
         catch (Exception ex)
         {
@@ -129,7 +128,6 @@ public static class Multiscreen
 
         return true;
     }
-
 
 
     private static void LateUpdate(UnityModManager.ModEntry modEntry, float deltaTime)
@@ -280,5 +278,29 @@ public static class Multiscreen
 
         Logger.LogInfo($"Display {targetDisplay} Activated");
            
+    }
+    public static void EnableDisplayFocusManager(bool enable = true)
+    {
+        GameObject displayManager = GameObject.Find(DISPLAY_FOCUS_MANAGER);
+
+        if (enable == (displayManager != null))
+            return;
+
+        if (enable)
+        {
+            Logger.LogInfo("Enabling Display Focus Manager");
+            //Add our DisplayFocusManager to try to keep both windows active
+            displayManager = new GameObject(DISPLAY_FOCUS_MANAGER);
+            displayManager.AddComponent<DisplayFocusManager>();
+            GameObject.DontDestroyOnLoad(displayManager);
+            displayManager.SetActive(true);
+        }
+        else
+        {
+            Logger.LogInfo("Removing Display Focus Manager");
+            GameObject.Destroy(displayManager);
+        }
+
+        focusManager = enable;
     }
 }

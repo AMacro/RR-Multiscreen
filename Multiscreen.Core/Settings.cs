@@ -19,7 +19,8 @@ public class Settings : UnityModManager.ModSettings, IDrawable
     public float secondDisplayScale = 1f;
     public bool solidBG = false;
     public string bgColour = "000000";
- 
+    public bool focusManager = true;
+
     [Space(10)]
     [Draw("Logging Level", Tooltip = "Amount of debug logging to capture."/*, VisibleOn = "ShowAdvancedSettings|true"*/)]
     public LogLevel DebugLogging = LogLevel.Info;

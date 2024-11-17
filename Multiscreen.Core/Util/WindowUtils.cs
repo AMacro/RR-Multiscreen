@@ -60,7 +60,7 @@ namespace Multiscreen.Util
             win.ClampToParentBounds();
         }
 
-        public static void UpdateScale()
+        public static void UpdateScale(float scale)
         {
             GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK);
 
@@ -72,7 +72,7 @@ namespace Multiscreen.Util
                 Window window = undockParent.transform.GetChild(i).GetComponent<Window>();
                 if (window != null && window.IsShown)
                 {
-                    window.transform.SetLossyScale(new Vector3(Multiscreen.settings.secondDisplayScale, Multiscreen.settings.secondDisplayScale, Multiscreen.settings.secondDisplayScale));
+                    window.transform.SetLossyScale(new Vector3(scale, scale, scale));
                 }
             }
         }

@@ -8,8 +8,6 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 public class DisplayFocusManager : MonoBehaviour
 {
-    private bool isLinuxPlatform;
-    private bool applicationIsFocused = true;
     private int lastScreen;
     private Dictionary<int, IntPtr> displayToWindow = new Dictionary<int, IntPtr>();
 
@@ -65,13 +63,6 @@ public class DisplayFocusManager : MonoBehaviour
     {
         Logger.LogDebug($"DisplayFocusManager.Start() runInBackground: {Application.runInBackground}");
         Application.runInBackground = true;
-        Logger.LogDebug($"DisplayFocusManager.Start() runInBackground: {Application.runInBackground}");
-
-        // Cache the platform check
-        isLinuxPlatform = SystemInfo.operatingSystem.ToLower().Contains("linux") ||
-                         Application.platform == RuntimePlatform.LinuxPlayer;
-
-        Logger.LogDebug($"DisplayFocusManager.Start() isLinuxPlatform: {isLinuxPlatform}, SystemInfo: {SystemInfo.operatingSystem}, Application.platform: {Application.platform}");
 
         Vector3 mousePos = Display.RelativeMouseAt(Input.mousePosition);
         lastScreen = mousePos.z >= 0 ? (int)mousePos.z : 0;
@@ -94,7 +85,6 @@ public class DisplayFocusManager : MonoBehaviour
     private void OnApplicationFocus(bool hasFocus)
     {
         Logger.LogDebug($"DisplayFocusManager.OnApplicationFocus({hasFocus})");
-        applicationIsFocused = hasFocus;
     }
 
     private void Update()
@@ -104,11 +94,11 @@ public class DisplayFocusManager : MonoBehaviour
 
         if (currentScreen != lastScreen)
         {
-            Logger.LogDebug($"DisplayFocusManager.Update() Mouse Moved last: {lastScreen}, new: {currentScreen}, applicationIsFocused: {applicationIsFocused}");
+            Logger.LogDebug($"DisplayFocusManager.Update() Mouse Moved last: {lastScreen}, new: {currentScreen}, applicationIsFocused: {Application.isFocused}");
 
             lastScreen = currentScreen;
 
-            if (applicationIsFocused) //temp for testing && isLinuxPlatform
+            if (Application.isFocused)
             {
                 GetFocus();
             }
@@ -120,7 +110,7 @@ public class DisplayFocusManager : MonoBehaviour
         List<Tuple<IntPtr, string>> processWindows = new List<Tuple<IntPtr, string>>();
         uint currentPID = GetCurrentProcessId();
 
-        IntPtr shellWindow = GetActiveWindow(); // Start with our known window
+        IntPtr shellWindow = GetActiveWindow();
         IntPtr windowHandle = shellWindow;
 
         while (windowHandle != IntPtr.Zero)
@@ -174,27 +164,40 @@ public class DisplayFocusManager : MonoBehaviour
 
         // Start from the foreground window and walk down the Z-order
         IntPtr currentWindow = GetForegroundWindow();
-        StringBuilder fgTitle = new StringBuilder(MAX_WINDOW_TITLE_LENGTH);
-        GetWindowText(currentWindow, fgTitle, MAX_WINDOW_TITLE_LENGTH);
-        Logger.LogDebug($"IsWindowTopMostOnDisplay() Starting at ForegroundWindow: {currentWindow}, Title: \"{fgTitle}\"");
+        
+        Logger.LogDebug(()=> 
+            {
+                StringBuilder fgTitle = new StringBuilder(MAX_WINDOW_TITLE_LENGTH);
+                GetWindowText(currentWindow, fgTitle, MAX_WINDOW_TITLE_LENGTH);
+
+                return $"IsWindowTopMostOnDisplay() Starting at ForegroundWindow: {currentWindow}, Title: \"{fgTitle}\"";
+        
+            });
 
         while (currentWindow != IntPtr.Zero)
         {
-            StringBuilder title = new StringBuilder(MAX_WINDOW_TITLE_LENGTH);
-            GetWindowText(currentWindow, title, MAX_WINDOW_TITLE_LENGTH);
-            Logger.LogDebug($"IsWindowTopMostOnDisplay() Checking window: {currentWindow}, Title: \"{title}\"");
+
+            Logger.LogDebug(() =>
+                {
+                    StringBuilder title = new StringBuilder(MAX_WINDOW_TITLE_LENGTH);
+                    GetWindowText(currentWindow, title, MAX_WINDOW_TITLE_LENGTH);
+
+                    return $"IsWindowTopMostOnDisplay() Checking window: {currentWindow}, Title: \"{title}\"";
+
+                });
 
             if (MonitorFromWindow(currentWindow, MONITOR_DEFAULTTONEAREST) == monitor)
             {
-                RECT currentRect;
-                GetWindowRect(currentWindow, out currentRect);
-                Logger.LogDebug($"IsWindowTopMostOnDisplay() On same monitor - Window: {currentWindow}, Rect: {{({currentRect.Left},{currentRect.Top}),({currentRect.Right},{currentRect.Bottom})}}");
 
                 if (currentWindow == windowHandle)
                 {
                     Logger.LogDebug($"IsWindowTopMostOnDisplay() Found our window - nothing above it");
                     return true;
                 }
+
+                RECT currentRect;
+                GetWindowRect(currentWindow, out currentRect);
+                Logger.LogDebug($"IsWindowTopMostOnDisplay() On same monitor - Window: {currentWindow}, Rect: {{({currentRect.Left},{currentRect.Top}),({currentRect.Right},{currentRect.Bottom})}}");
 
                 if (RectsOverlap(windowRect, currentRect))
                 {
