@@ -1,15 +1,11 @@
-﻿using Game;
+﻿
 using HarmonyLib;
 using Multiscreen.Util;
-using System;
-using System.Drawing;
 using TMPro;
 using UI.Builder;
-using UI.CarInspector;
 using UI.PreferencesWindow;
 using UnityEngine;
 using UnityEngine.UI;
-using static UnityEngine.InputSystem.Layouts.InputControlLayout;
 using Logger = Multiscreen.Util.Logger;
 
 namespace Multiscreen.Patches.Misc;

@@ -1,8 +1,8 @@
 ﻿using HarmonyLib;
 using UnityEngine;
 using UI.Common;
-using Multiscreen.Util;
 using Logger = Multiscreen.Util.Logger;
+using Multiscreen.Util;
 
 namespace Multiscreen.Patches.Misc;
 
@@ -46,12 +46,11 @@ public static class WindowManager_Patch
         return true;
     }
 
-    /*
     [HarmonyPrefix]
     [HarmonyPatch(typeof(WindowManager), nameof(WindowManager.CloseAllWindows))]
     private static void CloseAllWindows(WindowManager __instance)
     {
-        Multiscreen.Log($"Closing Windows");
+        Logger.LogDebug($"Closing All Windows");
         GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK);
 
         if (undockParent == null)
@@ -63,13 +62,13 @@ public static class WindowManager_Patch
             Window window = undockParent.transform.GetChild(i).GetComponent<Window>();
             if (window != null && window.IsShown)
             {
-                window.CloseWindow();                
+                window.SetDisplay(false);
+                //window.CloseWindow();                
             }
         }
 
-        Multiscreen.Log($"End Closing Windows");
+        Logger.LogDebug($"End Closing All Windows");
     }
-    */
 }
 
 
