@@ -15,6 +15,7 @@ using UI.StationWindow;
 using UI.SwitchList;
 using UI.Tutorial;
 using UnityEngine;
+using System;
 
 namespace Multiscreen.Patches.Menus;
 
@@ -35,20 +36,27 @@ public class PauseMenuPatch
         //close all undocked windows
         Logger.LogDebug($"_Quit() Child windows: {undockParent.transform.childCount}");
         int i = 0;
-
-        while (undockParent.transform.childCount > 0 && i <= undockParent.transform.childCount)
+        try
         {
-            Window window = undockParent.transform.GetChild(i).GetComponent<Window>();
-            if (window != null && window.IsShown)
+            while (undockParent.transform.childCount > 0 && i < undockParent.transform.childCount)
             {
-                window.SetDisplay(false);
-                i = 0;
+                Window window = undockParent.transform.GetChild(i).GetComponent<Window>();
+                if (window != null && window.IsShown)
+                {
+                    window.SetDisplay(false);
+                    i = 0;
+                }
+                else
+                {
+                    i++;
+                }
+                Logger.LogDebug($"_Quit() Child windows: {undockParent.transform.childCount}, i: {i}");
             }
-            else
-            {
-                i++;
-            }
-            Logger.LogDebug($"_Quit() Child windows: {undockParent.transform.childCount}, i: {i}");
+
+        }
+        catch (Exception ex)
+        {
+            Logger.LogInfo($"_Quit() Error closing windows!:\r\n{ex.Message}");
         }
 
         if(undockParent.transform.childCount > 0)
