@@ -1,26 +1,17 @@
 ﻿using System;
-using HarmonyLib;
-using JetBrains.Annotations;
-using UnityEngine.UI;
-using UnityEngine;
 using UnityModManagerNet;
-using System.Collections.Generic;
-using Analytics;
-using Helpers;
-using TMPro;
-using Logger = Multiscreen.Util.Logger;
+using JetBrains.Annotations;
+using UnityEngine;
+using System.Reflection;
+using System.IO;
 
 
 namespace Multiscreen;
 
-public static class Multiscreen
+public static class MultiscreenLoader
 {
     public static UnityModManager.ModEntry ModEntry;
-    public static Settings settings;
-    public static int gameDisplay = 0;
-    public static int secondDisplay = 1;
-    public static int targetDisplay = 0;
-    public static RawImage background;
+    const string CORE_NAME = "Multiscreen.Core.";
 
     public const string UNDOCK = "Canvas - Undock #";
     public const string MODALS = "Canvas - Modals";
@@ -36,9 +27,10 @@ public static class Multiscreen
         ModEntry.OnSaveGUI = settings.Save;
         ModEntry.OnLateUpdate += Multiscreen.LateUpdate;
 
-        Harmony harmony = null;
+        string coreVer = CORE_NAME;
 
-        try
+        WriteLog($"Game Version: {Application.version}");
+        switch (Application.version.Substring(0,6))
         {
             //Apply patches
             Logger.LogInfo("Patching...");
@@ -104,94 +96,52 @@ public static class Multiscreen
             }
            
             Activate();
+            case "2024.6":
+                coreVer += "Beta";
+                break;
+
+            default:
+                coreVer += "Main";
+                break;
         }
-        catch (Exception ex)
+
+        WriteLog($"Selected Core Version: {coreVer}");
+
+        string coreDll = coreVer + ".dll";
+
+        string coreAssemblyPath = Path.Combine(modEntry.Path, coreDll);
+
+        if (!File.Exists(coreAssemblyPath))
         {
-            Logger.LogInfo($"Failed to load: {ex.Message}\r\n{ex.StackTrace}");
-            harmony?.UnpatchAll();
+            WriteLog($"Failed to find core assembly at {coreAssemblyPath}");
             return false;
         }
 
-        return true;
-    }
-
-
-
-    private static void LateUpdate(UnityModManager.ModEntry modEntry, float deltaTime)
-    {
-        if(ModEntry.NewestVersion != null && ModEntry.NewestVersion.ToString() != "")
+        try
         {
-            Logger.LogInfo($"Multiscreen Latest Version: {ModEntry.NewestVersion}");
+            Assembly coreAssembly = Assembly.LoadFrom(coreAssemblyPath);
 
-            ModEntry.OnLateUpdate -= Multiscreen.LateUpdate;
+            Type modType = coreAssembly.GetType("Multiscreen.Multiscreen");  
+            MethodInfo loadMethod = modType.GetMethod("Load", BindingFlags.NonPublic | BindingFlags.Static);
 
-            if (ModEntry.NewestVersion > ModEntry.Version)
+            if (loadMethod == null)
             {
-                ShowUpdate();
+                WriteLog("Failed to find the Load method in the core assembly.");
+                return false;
             }
-            
+
+            bool result = (bool)loadMethod.Invoke(null, new object[] { modEntry });
+
+            return result;
+
+        } catch (Exception ex) {
+            //handle and log
+            WriteLog($"Failed to load core assembly: {ex.Message}\r\n{ex.StackTrace}");
+            return false;
         }
-        
-    }
-    private static void ShowUpdate()
-    {
-        EarlyAccessSplash earlyAccessSplash = UnityEngine.Object.FindObjectOfType<EarlyAccessSplash>();
-
-        if (earlyAccessSplash == null)
-            return;
-
-        earlyAccessSplash = UnityEngine.Object.Instantiate<EarlyAccessSplash>(earlyAccessSplash, earlyAccessSplash.transform.parent);
-
-        TextMeshProUGUI text = GameObject.Find("Canvas/EA(Clone)/EA Panel/Scroll View/Viewport/Text").GetComponentInChildren<TextMeshProUGUI>();
-        text.text = $"\r\n<style=h3>Multiscreen Update</style>\r\n\r\nA new version of Multiscreen Mod is available.\r\n\r\nCurrent version: {ModEntry.Version}\r\nNew version: {ModEntry.NewestVersion}\r\n\r\nRun Unity Mod Manager Installer to apply the update.";
-
-        RectTransform rt = GameObject.Find("Canvas/EA(Clone)/EA Panel").transform.GetComponent<RectTransform>();
-
-
-        UnityEngine.Object.DestroyImmediate(GameObject.Find("Canvas/EA(Clone)/EA Panel/Label Regular"));
-        UnityEngine.Object.DestroyImmediate(GameObject.Find("Canvas/EA(Clone)/EA Panel/Buttons/Opt Out"));
-
-        UnityEngine.UI.Button button = GameObject.Find("Canvas/EA(Clone)/EA Panel/Buttons/Opt In").GetComponentInChildren<UnityEngine.UI.Button>();
-        button.TMPText().text = "OK";
-        button.onClick.RemoveAllListeners();
-        button.onClick.AddListener(delegate {
-            earlyAccessSplash.Dismiss();
-            UnityEngine.Object.Destroy(earlyAccessSplash);
-        });
-
-        earlyAccessSplash.Show();
-    }
-    private static void ShowRestart()
-    {
-        EarlyAccessSplash earlyAccessSplash = UnityEngine.Object.FindObjectOfType<EarlyAccessSplash>();
-
-        if (earlyAccessSplash == null)
-            return;
-
-        earlyAccessSplash = UnityEngine.Object.Instantiate<EarlyAccessSplash>(earlyAccessSplash, earlyAccessSplash.transform.parent);
-
-        TextMeshProUGUI text = GameObject.Find("Canvas/EA(Clone)/EA Panel/Scroll View/Viewport/Text").GetComponentInChildren<TextMeshProUGUI>();
-        text.text = "\r\n<style=h3>Restart Required!</style>\r\n\r\nAn update has been made to Unity Mod Manager settings.\r\n\r\nPlease restart Railroader.";
-
-        RectTransform rt = GameObject.Find("Canvas/EA(Clone)/EA Panel").transform.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(rt.rect.width, rt.rect.height / 2);
-
-
-        UnityEngine.Object.DestroyImmediate(GameObject.Find("Canvas/EA(Clone)/EA Panel/Label Regular"));
-        //UnityEngine.Object.DestroyImmediate(GameObject.Find("Canvas/EA/EA Panel/Buttons/Opt In"));
-        UnityEngine.Object.DestroyImmediate(GameObject.Find("Canvas/EA(Clone)/EA Panel/Buttons/Opt Out"));
-
-        UnityEngine.UI.Button button = GameObject.Find("Canvas/EA(Clone)/EA Panel/Buttons/Opt In").GetComponentInChildren<UnityEngine.UI.Button>();
-        button.TMPText().text = "Quit";
-        button.onClick.RemoveAllListeners();
-        button.onClick.AddListener(delegate {
-            Application.Quit();
-        });
-
-        earlyAccessSplash.Show();
     }
 
-    public static void Activate()
+    private static void WriteLog(string msg)
     {
         
         int width, height;
@@ -265,5 +215,7 @@ public static class Multiscreen
 
         Logger.LogInfo($"Display {targetDisplay} Activated");
            
+        string str = $"[{DateTime.Now:HH:mm:ss.fff}] {msg}";
+        ModEntry.Logger.Log(str);
     }
 }

@@ -58,7 +58,7 @@ public static class SettingsBuilderPatch
                    delegate (float f)
                    {
                        Multiscreen.settings.secondDisplayScale = f;
-                       WindowUtils.UpdateScale();
+                       WindowUtils.UpdateScale(f);
                    },
                    0.2f, 2f, false));
         slider.RectTransform.name = "Multiscreen UI Scale";

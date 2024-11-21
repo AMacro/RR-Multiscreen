@@ -3,48 +3,44 @@ param
     [switch]$NoArchive,
     [string]$GameDir,
     [string]$Target,
-	[string]$Ver
+    [string]$Ver
 )
 
-Write-Host "Root: $PSScriptRoot"
-Write-Host "No Archive: $NoArchive"
-Write-Host "Target: $Target"
-Write-Host "Game Dir: $GameDir"
-Write-Host "Version: $Ver"
+$rootDir = $PSScriptRoot
+$buildDir = Join-Path $rootDir "build"
 
-$compress
-
-#Update the JSON
-$json = Get-Content ($PSScriptRoot + '/info.json') -raw | ConvertFrom-Json
+# Update the JSON
+$jsonPath = Join-Path $rootDir "info.json"
+$json = Get-Content $jsonPath -Raw | ConvertFrom-Json
 $json.Version = $Ver
 $modId = $json.Id
-$json | ConvertTo-Json -depth 32| set-content ($PSScriptRoot + '/info.json')
+$json | ConvertTo-Json -Depth 32 | Set-Content $jsonPath
 
-#Copy files to Build Dir
-Copy-Item ($PSScriptRoot + '/info.json') -Destination ("$PSScriptRoot/build/")
-Copy-Item ($Target) -Destination ("$PSScriptRoot/build/")
-Copy-Item ($PSScriptRoot + '/LICENSE') -Destination ("$PSScriptRoot/build/")
+# Copy files to Build Dir
+Copy-Item $jsonPath -Destination $buildDir
+Copy-Item (Join-Path $rootDir "LICENSE") -Destination $buildDir
 
-#Copy files to Game Dir
-if (!(Test-Path ($GameDir))) {
-	New-Item -ItemType Directory -Path $GameDir
+# Copy files to Game Dir
+if (!(Test-Path $GameDir)) {
+    New-Item -ItemType Directory -Path $GameDir -Force
 }
-Copy-Item ("$PSScriptRoot/build/*") -Destination ($GameDir)
+Copy-Item "$buildDir\*" -Destination $GameDir -Recurse -Force
 
-
-#Files to be compressed if we make a zip
+# Prepare for compression
+$compressPath = Join-Path $rootDir "Releases\$modId $Ver.zip"
 $compress = @{
-	Path = ($PSScriptRoot + "/build/*")
-	CompressionLevel = "Fastest"
-	DestinationPath = ($PSScriptRoot + "/Releases/$modId $Ver.zip")
+    Path = "$buildDir\*"
+    CompressionLevel = "Fastest"
+    DestinationPath = $compressPath
 }
 
-#Are we building a release or debug?
-if (!$NoArchive){
-	if (!(Test-Path ($PSScriptRoot + "/Releases"))) {
-		New-Item -ItemType Directory -Path ($PSScriptRoot + "/Releases")
-	}
-	
-	Write-Host "Zip Path: " $compress.DestinationPath
+# Create release package if not in debug mode
+if (!$NoArchive) {
+    $releaseDir = Join-Path $rootDir "Releases"
+    if (!(Test-Path $releaseDir)) {
+        New-Item -ItemType Directory -Path $releaseDir -Force
+    }
+    
+    Write-Host "Creating release package: $compressPath"
     Compress-Archive @compress -Force
 }

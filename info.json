@@ -3,7 +3,7 @@
     "Version":  "2.0.0.0",
     "DisplayName":  "Multiscreen",
     "Author":  "Macka",
-    "EntryMethod":  "Multiscreen.Multiscreen.Load",
+    "EntryMethod":  "Multiscreen.MultiscreenLoader.Load",
     "ManagerVersion":  "0.27.9",
     "HomePage":  "https://www.nexusmods.com/railroader/mods/6",
     "Repository":  "https://www.andrewcraigmackenzie.com/unitymods/Releases.json"

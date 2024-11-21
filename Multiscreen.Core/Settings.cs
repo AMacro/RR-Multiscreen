@@ -24,6 +24,7 @@ public class Settings : UnityModManager.ModSettings, IDrawable
     public float secondDisplayScale = 1f;
     public bool solidBG = false;
     public string bgColour = "000000";
+    public bool focusManager = true;
 
     //V2.x Settings 
     public DisplaySettings[] displays;

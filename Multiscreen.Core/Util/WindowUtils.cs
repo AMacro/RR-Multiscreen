@@ -28,8 +28,6 @@ namespace Multiscreen.Util
             {
                 newParent = undockParent;
                 targetWindow.transform.SetLossyScale(new Vector3(Multiscreen.settings.secondDisplayScale, Multiscreen.settings.secondDisplayScale, Multiscreen.settings.secondDisplayScale));
-                
-
             }
             else
             {
@@ -41,11 +39,7 @@ namespace Multiscreen.Util
             {
                 Logger.LogDebug($"SetDisplay({targetWindow?.name}, {secondary}) New parent: {newParent.name}");
                 targetWindow.transform.SetParent(newParent.transform);
-
-
             }
-             
-
         }
 
         public static void ToggleDisplay(this Component targetWindow) 
@@ -79,7 +73,7 @@ namespace Multiscreen.Util
             win.ClampToParentBounds();
         }
 
-        public static void UpdateScale()
+        public static void UpdateScale(float scale)
         {
             GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK+"1");
 
@@ -91,7 +85,7 @@ namespace Multiscreen.Util
                 Window window = undockParent.transform.GetChild(i).GetComponent<Window>();
                 if (window != null && window.IsShown)
                 {
-                    window.transform.SetLossyScale(new Vector3(Multiscreen.settings.secondDisplayScale, Multiscreen.settings.secondDisplayScale, Multiscreen.settings.secondDisplayScale));
+                    window.transform.SetLossyScale(new Vector3(scale, scale, scale));
                 }
             }
         }
