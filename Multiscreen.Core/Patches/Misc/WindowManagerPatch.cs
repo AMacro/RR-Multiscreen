@@ -15,7 +15,7 @@ public static class WindowManager_Patch
     {
         Logger.LogTrace($"WindowManager.Awake(): {__instance?.transform?.name}");
     }
-    
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(WindowManager), nameof(WindowManager.HitTest))]
     private static bool HitTest(WindowManager __instance, ref Window __result, Vector3 mousePosition)
@@ -36,7 +36,7 @@ public static class WindowManager_Patch
                 Vector3 point = component.InverseTransformPoint(mousePosition);
                 if (component.rect.Contains(point) && mousePosition.z == Multiscreen.targetDisplay) //confirm mouse is on the same display as the canvas
                 {
-                    Logger.LogVerbose ($"Hit Test({mousePosition}) - FOUND {window?.name}");
+                    Logger.LogVerbose($"Hit Test({mousePosition}) - FOUND {window?.name}");
                     __result = window;
                     return false;
                 }
@@ -70,7 +70,3 @@ public static class WindowManager_Patch
         Logger.LogDebug($"End Closing All Windows");
     }
 }
-
-
-
-

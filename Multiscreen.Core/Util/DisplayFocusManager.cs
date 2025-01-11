@@ -4,6 +4,7 @@ using System.Text;
 
 namespace Multiscreen.Util;
 
+using System.Collections;
 using System.Runtime.InteropServices;
 using UnityEngine;
 public class DisplayFocusManager : MonoBehaviour
@@ -59,8 +60,10 @@ public class DisplayFocusManager : MonoBehaviour
     private const int MAX_WINDOW_TITLE_LENGTH = 256;
     #endregion
 
-    private void Start()
+    public IEnumerator Start()
     {
+        yield return new WaitForSecondsRealtime(3f);
+
         Logger.LogDebug($"DisplayFocusManager.Start() runInBackground: {Application.runInBackground}");
         Application.runInBackground = true;
 
@@ -182,9 +185,9 @@ public class DisplayFocusManager : MonoBehaviour
                     StringBuilder title = new StringBuilder(MAX_WINDOW_TITLE_LENGTH);
                     GetWindowText(currentWindow, title, MAX_WINDOW_TITLE_LENGTH);
 
-                    return $"IsWindowTopMostOnDisplay() Checking window: {currentWindow}, Title: \"{title}\"";
+                    return $"IsWindowTopMostOnDisplay() Checking window: {currentWindow}, Title: \"{title}\", Monitor: {MonitorFromWindow(currentWindow, MONITOR_DEFAULTTONEAREST)}, Target Monitor: {monitor}";
 
-                });
+                }); 
 
             if (MonitorFromWindow(currentWindow, MONITOR_DEFAULTTONEAREST) == monitor)
             {
@@ -199,7 +202,7 @@ public class DisplayFocusManager : MonoBehaviour
                 GetWindowRect(currentWindow, out currentRect);
                 Logger.LogDebug($"IsWindowTopMostOnDisplay() On same monitor - Window: {currentWindow}, Rect: {{({currentRect.Left},{currentRect.Top}),({currentRect.Right},{currentRect.Bottom})}}");
 
-                if (RectsOverlap(windowRect, currentRect))
+                if (RectsOverlap(windowRect, currentRect) && !(currentRect.Left == currentRect.Right && currentRect.Top == currentRect.Bottom))
                 {
                     Logger.LogDebug($"IsWindowTopMostOnDisplay() Found overlapping window above target");
                     return false;
