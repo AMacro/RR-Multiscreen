@@ -5,7 +5,7 @@
     <LangVersion>latest</LangVersion>
     <RootNamespace>Multiscreen</RootNamespace>
     <SignAssembly>False</SignAssembly>
-    <FileVersion>1.6.1.0</FileVersion>
+    <FileVersion>1.6.1.1</FileVersion>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <Configurations>Debug;Release;MainBuild;BetaBuild</Configurations>
   </PropertyGroup>
@@ -97,9 +97,9 @@
     <MSBuild Projects="$(MSBuildProjectFile)" Properties="Configuration=BetaBuild" Targets="Build" />
   </Target>
 
-  <Target Name="SignAssemblies" AfterTargets="BuildBothVersions" Condition="'$(Configuration)'=='Release' AND '$(Cert-Thumb)' != ''">
-    <Exec Command="&quot;$(SignToolPath)SignTool.exe&quot; sign /sha1 $(Cert-Thumb) /fd SHA256 /t http://timestamp.sectigo.com &quot;$(ProjectDir)bin\MainBuild\net48\Multiscreen.Core.Main.dll&quot;" />
-    <Exec Command="&quot;$(SignToolPath)SignTool.exe&quot; sign /sha1 $(Cert-Thumb) /fd SHA256 /t http://timestamp.sectigo.com &quot;$(ProjectDir)bin\BetaBuild\net48\Multiscreen.Core.Beta.dll&quot;" />
+  <Target Name="SignAssemblies" AfterTargets="BuildBothVersions" Condition="'$(Configuration)'=='Release' AND '$(Cert-Thumb)' != ''"> 
+    <Exec Command="&quot;$(SignToolPath)SignTool.exe&quot; sign /sha1 $(Cert-Thumb) /fd SHA256 /t http://timestamp.sectigo.com &quot;$(ProjectDir)bin\MainBuild\net48\Multiscreen.Core.*.dll&quot;" />
+    <!--Exec Command="&quot;$(SignToolPath)SignTool.exe&quot; sign /sha1 $(Cert-Thumb) /fd SHA256 /t http://timestamp.sectigo.com &quot;$(ProjectDir)bin\BetaBuild\net48\Multiscreen.Core.Beta.dll&quot;" /-->
   </Target>
 
   <Target Name="CopyBuildOutputs" AfterTargets="BuildBothVersions" Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='Release'">

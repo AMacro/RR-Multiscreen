@@ -3,6 +3,7 @@ using UnityEngine;
 using UI.Common;
 using Logger = Multiscreen.Util.Logger;
 using Multiscreen.Util;
+using System.Linq;
 
 namespace Multiscreen.Patches.Misc;
 
@@ -22,29 +23,35 @@ public static class WindowManager_Patch
     {
         Logger.LogVerbose($"Hit Test({mousePosition})");
 
-        GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK);
+        // if we're not on the second display then hand back to the game's code
+        if (mousePosition.z != Multiscreen.targetDisplay)
+            return true;
 
+        var undockParent = GameObject.Find(Multiscreen.UNDOCK);
         if (undockParent == null)
             return true;
 
-        for (int i = 0; i < undockParent.transform.childCount; i++)
+        // Get all visible windows sorted by Z-order (top to bottom)
+        var windows = undockParent.GetComponentsInChildren<Window>()
+            .Where(w => w != null && w.IsShown)
+            .OrderByDescending(w => w.transform.GetSiblingIndex());
+
+        foreach (var window in windows)
         {
-            Window window = undockParent.transform.GetChild(i).GetComponent<Window>();
-            if (window != null && window.IsShown)
+            var rectTransform = window.RectTransform;
+            var point = rectTransform.InverseTransformPoint(mousePosition);
+
+            if (rectTransform.rect.Contains(point))
             {
-                RectTransform component = window.GetComponent<RectTransform>();
-                Vector3 point = component.InverseTransformPoint(mousePosition);
-                if (component.rect.Contains(point) && mousePosition.z == Multiscreen.targetDisplay) //confirm mouse is on the same display as the canvas
-                {
-                    Logger.LogVerbose($"Hit Test({mousePosition}) - FOUND {window?.name}");
-                    __result = window;
-                    return false;
-                }
+                Logger.LogVerbose($"Hit Test({mousePosition}) - FOUND {window?.name}");
+                __result = window;
+                return false;
             }
         }
 
         return true;
     }
+
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(WindowManager), nameof(WindowManager.CloseAllWindows))]
