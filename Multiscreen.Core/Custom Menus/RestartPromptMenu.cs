@@ -8,9 +8,6 @@ using System.Collections.Generic;
 using UI.CompanyWindow;
 using Logger = Multiscreen.Util.Logger;
 
-
-
-
 namespace Multiscreen.CustomMenu;
 
 public class RestartPromptMenu : MonoBehaviour
