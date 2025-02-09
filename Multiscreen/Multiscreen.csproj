@@ -23,13 +23,16 @@
   <ItemGroup>
     <PackageReference Include="ErrorProne.NET.Structs" Version="0.4.0-beta.1" />
   </ItemGroup>
-  
+  <ItemGroup>
+    <ProjectReference Include="..\Multiscreen.Core\Multiscreen.Core.csproj" />
+  </ItemGroup>
+
   <!-- Unity -->
   <ItemGroup>
     <Reference Include="UnityEngine">
       <HintPath>$(InstallDir)\Railroader_Data\Managed\</HintPath>
     </Reference>
-	  <Reference Include="UnityEngine.CoreModule">
+    <Reference Include="UnityEngine.CoreModule">
       <HintPath>$(InstallDir)\Railroader_Data\Managed\</HintPath>
     </Reference>
   </ItemGroup>
@@ -43,10 +46,10 @@
     </ItemGroup>
   </Target>
 
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent" DependsOnTargets="PostBuildMacros">	  
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent" DependsOnTargets="PostBuildMacros">
     <!-- Sign Assemblies if in 'Release' -->
-	  <Exec Condition="$(ConfigurationName) == 'Release' AND $(Cert-Thumb) != ''" Command="&quot;$(SignToolPath)SignTool.exe&quot; sign /sha1 $(Cert-Thumb) /fd SHA256 /t http://timestamp.sectigo.com &quot;$(TargetPath)&quot;" />
-    
+    <Exec Condition="$(ConfigurationName) == 'Release' AND $(Cert-Thumb) != ''" Command="&quot;$(SignToolPath)SignTool.exe&quot; sign /sha1 $(Cert-Thumb) /fd SHA256 /t http://timestamp.sectigo.com &quot;$(TargetPath)&quot;" />
+
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(SolutionDir)build\" />
   </Target>
 

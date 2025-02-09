@@ -16,7 +16,7 @@ public class Settings : UnityModManager.ModSettings, IDrawable
     //[Header("Second Display")]
     //[Draw("Second Display", Tooltip = "This is the Unity Display number: -1 not set, must be >= 1")]
 
-    public int version = 0;
+    public int version = 2;
 
     //V1.x Settings
     public int gameDisplay = -1;
@@ -27,7 +27,7 @@ public class Settings : UnityModManager.ModSettings, IDrawable
     public bool focusManager = true;
 
     //V2.x Settings 
-    public DisplaySettings[] displays;
+    public DisplaySettings[] displays = [];
     public bool saveWindowsOnExit = true;
     public bool restoreWindowsOnLoad = true;
     public WindowSettings[] windows;
@@ -98,6 +98,7 @@ public class DisplaySettings : ICloneable<DisplaySettings>
     public float scale = 1f;
     public int nativeWidth;
     public int nativeHeight;
+    public bool solidBG = false;
     public string bgColour = "000000";
     public bool AllowWindows = true;
 

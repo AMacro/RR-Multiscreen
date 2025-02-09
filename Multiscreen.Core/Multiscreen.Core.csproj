@@ -31,7 +31,7 @@
   <!-- Railroader -->
   <ItemGroup Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='Release'">
     <Reference Include="Assembly-CSharp" />
-  </ItemGroup> 
+  </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'=='MainBuild'">
     <Reference Include="Assembly-CSharp">
       <HintPath>$(InstallDir)\Railroader_Data\Managed_Main\Assembly-CSharp.dll</HintPath>
@@ -48,7 +48,7 @@
     <Reference Include="Multiscreen">
       <HintPath>../build/Multiscreen.dll</HintPath>
     </Reference>
-               
+
   </ItemGroup>
 
   <!-- Third-Party -->
@@ -56,7 +56,7 @@
     <PackageReference Include="ErrorProne.NET.Structs" Version="0.4.0-beta.1" />
     <PackageReference Include="Humanizer.Core" Version="2.14.1" />
   </ItemGroup>
-  
+
   <!-- Unity -->
   <ItemGroup>
     <Reference Include="System.Windows.Forms" />
@@ -97,7 +97,7 @@
     <MSBuild Projects="$(MSBuildProjectFile)" Properties="Configuration=BetaBuild" Targets="Build" />
   </Target>
 
-  <Target Name="SignAssemblies" AfterTargets="BuildBothVersions" Condition="'$(Configuration)'=='Release' AND '$(Cert-Thumb)' != ''"> 
+  <Target Name="SignAssemblies" AfterTargets="BuildBothVersions" Condition="'$(Configuration)'=='Release' AND '$(Cert-Thumb)' != ''">
     <Exec Command="&quot;$(SignToolPath)SignTool.exe&quot; sign /sha1 $(Cert-Thumb) /fd SHA256 /t http://timestamp.sectigo.com &quot;$(ProjectDir)bin\MainBuild\net48\Multiscreen.Core.*.dll&quot;" />
     <!--Exec Command="&quot;$(SignToolPath)SignTool.exe&quot; sign /sha1 $(Cert-Thumb) /fd SHA256 /t http://timestamp.sectigo.com &quot;$(ProjectDir)bin\BetaBuild\net48\Multiscreen.Core.Beta.dll&quot;" /-->
   </Target>

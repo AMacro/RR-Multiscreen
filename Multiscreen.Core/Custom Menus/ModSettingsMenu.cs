@@ -96,10 +96,10 @@ public class ModSettingsMenu : MonoBehaviour
         Logger.LogInfo($"Old: {oldDisplaySettings.First().scale}, New: {newDisplaySettings.First().scale}");
        */
 
-        oldFocusManager = Multiscreen.focusManager;
-        oldSolidBg = Multiscreen.background.enabled;
-        oldColour = Multiscreen.background.color;
-        oldScale = Multiscreen.settings.secondDisplayScale;
+        oldFocusManager = DisplayUtils.FocusManagerActive;
+        //oldSolidBg = Multiscreen.background.enabled;
+        //oldColour = Multiscreen.background.color;
+        //oldScale = Multiscreen.settings.secondDisplayScale;
         newScale = oldScale;
     } 
 
@@ -135,158 +135,61 @@ public class ModSettingsMenu : MonoBehaviour
 
                 builder.AddTabbedPanels(SelectedTab, BuildTabs);
 
-                //UIPanel.Create(contentPanel.transform.GetComponent<RectTransform>(), assets, delegate (UIPanelBuilder builder)
-                //{
-                //    builder.AddSection("Game Display");
-
-                //    List<DisplayInfo> displays = new();
-                //    Screen.GetDisplayLayout(displays);
-
-                //    List<int> values = displays.Select((DisplayInfo r, int i) => i).ToList();
-
-                //    builder.AddField("Display", builder.AddDropdownIntPicker(values, oldGameDisplay, (int i) => (i >= 0) ? $"Display: {i} ({displays[i].name})" : $"00", canWrite: true, delegate (int i)
-                //    {
-                //        Logger.LogDebug($"Selected Display: {i}");
-                //        if(i == oldSecondDisplay)
-                //        {
-                //            newSecondDisplay = oldGameDisplay;
-                //        }
-                //        newGameDisplay = i;
-
-                //    }));
-
-                //    /*
-                //    builder.AddField("Full Screen", builder.AddToggle(() => Screen.fullScreen, delegate (bool en)
-                //    {
-                //        Multiscreen.Log($"Game Display Full Screen: {en}");
-                //    })).Disable(true);
-                //    */
-
-                //    builder.AddSection("Secondary Display");
-
-                //    builder.AddField("Display", builder.AddDropdownIntPicker(values, oldSecondDisplay, (int i) => (i >= 0) ? $"Display: {i} ({displays[i].name})" : $"00", canWrite: true, delegate (int i)
-                //    {
-                //        Logger.LogDebug($"Secondary Display: {i}");
-                //        if (i == 0)
-                //        {
-                //            oldSecondDisplay = -1;
-                //            return;
-                //        }
-
-                //        if (i == oldGameDisplay)
-                //        {
-                //            newGameDisplay = oldSecondDisplay;
-                //        }
-                //        newSecondDisplay = i;
-                //        //Screen.MoveMainWindowTo(displays[i], new Vector2Int(0, 0));
-                //    }));
-                //    builder.AddLabel("Note: Display 0 can not be used for the Secondary Display due to a Unity Engine limitation.\r\nA work-around for this on Windows is to change your Primary display in the Windows Display settings.");
-
-                //    builder.Spacer().Height(20f);
-                    builder.AddField("UI Scale", builder.AddSlider(() => newScale, () => string.Format("{0}%", Mathf.Round(newScale * 100f)),delegate (float f)
-                    {
-                        newScale = f;
-                        WindowUtils.UpdateScale(newScale);
-                    },
-                    0.2f, 2f, false));
+                builder.AddField("UI Scale", builder.AddSlider(() => newScale, () => string.Format("{0}%", Mathf.Round(newScale * 100f)),delegate (float f)
+                {
+                    newScale = f;
+                    WindowUtils.UpdateScale(1, newScale);
+                },
+                0.2f, 2f, false));
 
                     
-                    builder.AddField("Solid Background",builder.HStack(delegate (UIPanelBuilder builder)
-                    {
-                        builder.AddToggle(() => Multiscreen.background.enabled, isOn =>
-                        {
-                            Multiscreen.background.enabled = isOn;
-                            builder.Rebuild();
-                        });
-
-                //    builder.AddField("UI Scale", builder.AddSlider(() => Multiscreen.settings.secondDisplayScale, () => string.Format("{0}%", Mathf.Round(Multiscreen.settings.secondDisplayScale * 100f)),delegate (float f)
+                //builder.AddField("Solid Background",builder.HStack(delegate (UIPanelBuilder builder)
+                //{
+                //    builder.AddToggle(() => Multiscreen.background.enabled, isOn =>
                 //    {
-                //        Multiscreen.settings.secondDisplayScale = f;
-                //        WindowUtils.UpdateScale();
-                //    },
-                //    0.2f, 2f, false));
+                //        Multiscreen.background.enabled = isOn;
+                //        builder.Rebuild();
+                //    });
 
-
-                //    builder.AddField("Solid Background",builder.HStack(delegate (UIPanelBuilder builder)
+                //    builder.AddColorDropdown(ColorHelper.HexFromColor(Multiscreen.background.color), colour => 
                 //    {
-                //        builder.AddToggle(() => Multiscreen.settings.solidBG, isOn =>
+                //        UnityEngine.Color temp = Multiscreen.background.color;
+                //        UnityEngine.Color newCol;
+                //        if (ColorUtility.TryParseHtmlString(colour, out newCol))
                 //        {
-                //            Multiscreen.settings.solidBG = isOn;
-                //            Multiscreen.background.enabled = isOn;
-                //            builder.Rebuild();
-                //        });
-                        builder.AddColorDropdown(ColorHelper.HexFromColor(Multiscreen.background.color), colour => 
-                        {
-                            UnityEngine.Color temp = Multiscreen.background.color;
-                            UnityEngine.Color newCol;
-                            if (ColorUtility.TryParseHtmlString(colour, out newCol))
-                            {
-                                Multiscreen.background.color = newCol;
-                            }
-                            else
-                            {
-                                Multiscreen.background.color = temp;
-                            }
-                            //Logger.LogInfo(colour);
-                        }
-                        ).Width(60f);
-                    })
-                    );
-
-
-                    builder.AddField("Focus Management", builder.AddToggle(() => Multiscreen.focusManager, delegate (bool en)
-                    {
-                        Multiscreen.EnableDisplayFocusManager(en);
-                    }));
-
-                    builder.AddLabel("Focus management ensures each display is focused when the mouse is over it.");
-
-                //        builder.Spacer(2f);
-
-                //        builder.AddColorDropdown(Multiscreen.settings.bgColour, colour => 
-                //        {
-                //            UnityEngine.Color temp = Multiscreen.background.color;
-                //            UnityEngine.Color newCol;
-                //            if (ColorUtility.TryParseHtmlString(colour, out newCol))
-                //            {
-                //                Multiscreen.settings.bgColour = colour;
-                //                Multiscreen.background.color = newCol;
-                //            }
-                //            else
-                //            {
-                //                Multiscreen.background.color = temp;
-                //            }
-                //            //Logger.LogInfo(colour);
+                //            Multiscreen.background.color = newCol;
                 //        }
-                //        ).Width(60f);
-                //    })
-                //    );
+                //        else
+                //        {
+                //            Multiscreen.background.color = temp;
+                //        }
+                //        //Logger.LogInfo(colour);
+                //    }
+                //    ).Width(60f);
+                //})
+                //);
 
-                //    //});
-                //    /*
-                //    builder.AddField("Full Screen", builder.AddToggle(() => Screen.fullScreen, delegate (bool en)
-                //    {
-                //        //Screen.fullScreen = en;
-                //        Multiscreen.Log($"Secondary Display Full Screen: {en}");
-                //    }));
-                //    */
 
-                //    builder.AddExpandingVerticalSpacer();
+                builder.AddField("Focus Management", builder.AddToggle(() => DisplayUtils.FocusManagerActive, delegate (bool en)
+                {
+                    DisplayUtils.EnableDisplayFocusManager(en);
+                }));
 
-                //});
+                builder.AddLabel("Focus management ensures each display is focused when the mouse is over it.");
+
 
                 builder.Spacer(16f);
                 builder.HStack(delegate (UIPanelBuilder builder)
                 {
                     builder.AddButton("Back", delegate
                     {
-                        Multiscreen.EnableDisplayFocusManager(oldFocusManager);
+                        //DisplayUtils.EnableDisplayFocusManager(oldFocusManager);
 
-                        Multiscreen.background.enabled = oldSolidBg;
-                        Multiscreen.background.color = oldColour;
+                        //Multiscreen.background.enabled = oldSolidBg;
+                        //Multiscreen.background.color = oldColour;
 
-                        Multiscreen.settings.secondDisplayScale = oldScale;
-                        WindowUtils.UpdateScale(oldScale);
+                        //Multiscreen.settings.secondDisplayScale = oldScale;
+                        //WindowUtils.UpdateScale(oldScale);
 
                         MenuManagerPatch._MMinstance.navigationController.Pop();
 
@@ -297,47 +200,31 @@ public class ModSettingsMenu : MonoBehaviour
                     builder.AddButton("Apply", delegate
                     {
 
-                        Multiscreen.settings.focusManager = Multiscreen.focusManager;
+                        Multiscreen.settings.focusManager = DisplayUtils.FocusManagerActive;
 
-                        Multiscreen.settings.solidBG = Multiscreen.background.enabled;
-                        Multiscreen.settings.bgColour = ColorHelper.HexFromColor(Multiscreen.background.color);
+                        //Multiscreen.settings.solidBG = Multiscreen.background.enabled;
+                        //Multiscreen.settings.bgColour = ColorHelper.HexFromColor(Multiscreen.background.color);
 
-                        Multiscreen.settings.secondDisplayScale = newScale;
+                        //Multiscreen.settings.secondDisplayScale = newScale;
 
-                        List<DisplayInfo> displays = new();
-                        Screen.GetDisplayLayout(displays);
+                        //List<DisplayInfo> displays = new();
+                        //Screen.GetDisplayLayout(displays);
 
-                        if (Multiscreen.gameDisplay != newGameDisplay)
-                        {
-                            Multiscreen.gameDisplay = newGameDisplay;
-                            Multiscreen.settings.gameDisplay = newGameDisplay;
+                        //if (Multiscreen.gameDisplay != newGameDisplay)
+                        //{
+                        //    Multiscreen.gameDisplay = newGameDisplay;
+                        //    Multiscreen.settings.gameDisplay = newGameDisplay;
 
-                            Screen.MoveMainWindowTo(displays[Multiscreen.gameDisplay], new Vector2Int(0, 0));
-                        }
+                        //    Screen.MoveMainWindowTo(displays[Multiscreen.gameDisplay], new Vector2Int(0, 0));
+                        //}
 
-                        if (Multiscreen.secondDisplay != newSecondDisplay)
-                        {
-                            Multiscreen.secondDisplay = newSecondDisplay;
-                            Multiscreen.settings.secondDisplay = newSecondDisplay;
+                        //if (Multiscreen.secondDisplay != newSecondDisplay)
+                        //{
+                        //    Multiscreen.secondDisplay = newSecondDisplay;
+                        //    Multiscreen.settings.secondDisplay = newSecondDisplay;
 
-                            /*
-                            if (Application.platform == RuntimePlatform.WindowsPlayer)
-                            {
-                                Screen.MoveMainWindowTo(displays[Multiscreen.secondDisplay], new Vector2Int(0, 0));
-                                
-                                WinNativeUtil.RECT r = new();
-                                WinNativeUtil.GetWindowRect(Process.GetCurrentProcess().MainWindowHandle,ref r);
-
-                                Multiscreen.Log($"Rect: {r.left}, {r.right}, {r.top}, {r.bottom}");
-                                Screen.MoveMainWindowTo(displays[Multiscreen.gameDisplay], new Vector2Int(0, 0));
-                            }
-                            else
-                            {
-                                ShowRestart();
-                            }*/
-
-                            ShowRestart();
-                        }
+                        //    ShowRestart();
+                        //}
 
                         MenuManagerPatch._MMinstance.navigationController.Pop();
 
@@ -374,50 +261,50 @@ public class ModSettingsMenu : MonoBehaviour
 
         }));
 
-        builder.AddField("UI Scale", builder.AddSlider(() => Multiscreen.settings.secondDisplayScale, () => string.Format("{0}%", Mathf.Round(Multiscreen.settings.secondDisplayScale * 100f)), delegate (float f)
-        {
-            Multiscreen.settings.secondDisplayScale = f;
-            WindowUtils.UpdateScale();
-        },
-        0.2f, 2f, false));
+        //builder.AddField("UI Scale", builder.AddSlider(() => Multiscreen.settings.secondDisplayScale, () => string.Format("{0}%", Mathf.Round(Multiscreen.settings.secondDisplayScale * 100f)), delegate (float f)
+        //{
+        //    Multiscreen.settings.secondDisplayScale = f;
+        //    WindowUtils.UpdateScale(newScale);
+        //},
+        //0.2f, 2f, false));
 
 
-        builder.AddField("Solid Background", builder.HStack(delegate (UIPanelBuilder builder)
-        {
-            builder.AddToggle(() => Multiscreen.settings.solidBG, isOn =>
-            {
-                Multiscreen.settings.solidBG = isOn;
-                Multiscreen.background.enabled = isOn;
-                builder.Rebuild();
-            });
+        //builder.AddField("Solid Background", builder.HStack(delegate (UIPanelBuilder builder)
+        //{
+        //    builder.AddToggle(() => Multiscreen.settings.solidBG, isOn =>
+        //    {
+        //        Multiscreen.settings.solidBG = isOn;
+        //        Multiscreen.background.enabled = isOn;
+        //        builder.Rebuild();
+        //    });
 
-            builder.Spacer(2f);
+        //    builder.Spacer(2f);
 
-            builder.AddColorDropdown(Multiscreen.settings.bgColour, colour =>
-            {
-                UnityEngine.Color temp = Multiscreen.background.color;
-                UnityEngine.Color newCol;
-                if (ColorUtility.TryParseHtmlString(colour, out newCol))
-                {
-                    Multiscreen.settings.bgColour = colour;
-                    Multiscreen.background.color = newCol;
-                }
-                else
-                {
-                    Multiscreen.background.color = temp;
-                }
-                //Logger.LogInfo(colour);
-            }
-            ).Width(60f);
-        })
-        );
+        //    builder.AddColorDropdown(Multiscreen.settings.bgColour, colour =>
+        //    {
+        //        UnityEngine.Color temp = Multiscreen.background.color;
+        //        UnityEngine.Color newCol;
+        //        if (ColorUtility.TryParseHtmlString(colour, out newCol))
+        //        {
+        //            Multiscreen.settings.bgColour = colour;
+        //            Multiscreen.background.color = newCol;
+        //        }
+        //        else
+        //        {
+        //            Multiscreen.background.color = temp;
+        //        }
+        //        //Logger.LogInfo(colour);
+        //    }
+        //    ).Width(60f);
+        //})
+        //);
 
-        builder.AddField("Allow Windows", builder.AddToggle(() => Multiscreen.settings.solidBG, isOn =>
-        {
-            Multiscreen.settings.solidBG = isOn;
-            Multiscreen.background.enabled = isOn;
-            builder.Rebuild();
-        }));
+        //builder.AddField("Allow Windows", builder.AddToggle(() => Multiscreen.settings.solidBG, isOn =>
+        //{
+        //    Multiscreen.settings.solidBG = isOn;
+        //    Multiscreen.background.enabled = isOn;
+        //    builder.Rebuild();
+        //}));
 
 
         builder.AddExpandingVerticalSpacer();

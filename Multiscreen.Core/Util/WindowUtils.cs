@@ -1,123 +1,221 @@
-﻿using TMPro;
+﻿using System.Collections.Generic;
+using TMPro;
+using UI.Builder;
+using UI;
 using UI.Common;
 using UnityEngine;
+using System;
+using System.Linq;
 
-namespace Multiscreen.Util
+namespace Multiscreen.Util;
+
+public static class WindowUtils
 {
-    public static class WindowUtils
+    private static readonly Dictionary<Window, int> WindowDisplayMap = [];
+    private static readonly Dictionary<Window, TMP_Dropdown> WindowSelectorMap = [];
+    private static readonly Queue<(Window window, int display)> pendingWindows = [];
+
+    public static void SetDisplay(this Component targetWindow, int displayIndex)
     {
-        public static void SetDisplay(this Component targetWindow, bool secondary)
+        if (targetWindow == null)
+            return;
+
+        var window = targetWindow.GetComponent<Window>();
+        if (window == null)
         {
-            if (targetWindow == null)
-            {
-                return;
-            }
-
-            Logger.LogVerbose($"SetDisplay({targetWindow?.name}, {secondary})\r\n\tCurrent Transform: {targetWindow?.transform?.name}\r\n\tCurrent Transform Parent: {targetWindow?.transform?.parent?.name}");
-
-            GameObject newParent = null;
-            GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK + "1");
-            GameObject modalParent = GameObject.Find(Multiscreen.MODALS);
-
-            if (undockParent != null)
-                Logger.LogDebug($"SetDisplay: Found undockParent");
-            if (modalParent != null)
-                Logger.LogDebug($"SetDisplay: Found modalParent");
-
-            if (secondary == true && undockParent != null)
-            {
-                newParent = undockParent;
-                targetWindow.transform.SetLossyScale(new Vector3(Multiscreen.settings.secondDisplayScale, Multiscreen.settings.secondDisplayScale, Multiscreen.settings.secondDisplayScale));
-            }
-            else
-            {
-                newParent = modalParent;
-                targetWindow.transform.SetLossyScale(modalParent.transform.lossyScale);
-            }
-
-            if (newParent != null)
-            {
-                Logger.LogDebug($"SetDisplay({targetWindow?.name}, {secondary}) New parent: {newParent.name}");
-                targetWindow.transform.SetParent(newParent.transform);
-            }
+            Logger.LogInfo($"SetDisplay: {targetWindow?.name} does not contain a Window component");
+            return;
         }
 
-        public static void ToggleDisplay(this Component targetWindow) 
+        if (!DisplayUtils.Initialised)
         {
-            Logger.LogDebug($"ToggleDisplay({targetWindow?.name}) Current parent: \"{targetWindow.transform.parent.name}\"");
-
-            int display = targetWindow.GetDisplayForWindow();
-
-            if (display == 0)
-            {
-                targetWindow.SetDisplay(true);
-            }
-            else
-            {
-                targetWindow.SetDisplay(false);
-            }
-
-            /*
-
-            if (targetWindow.transform.parent.name == Multiscreen.UNDOCK)
-            {
-                targetWindow.SetDisplay(false);
-            }
-            else if (targetWindow.transform.parent.name == Multiscreen.MODALS)
-            {
-                targetWindow.SetDisplay(true);
-            }
-            */
-
-            Window win = targetWindow.GetComponentInChildren<Window>();
-            win.ClampToParentBounds();
+            Logger.LogDebug($"SetDisplay: Displays not initialized yet, queueing {window?.name} for display {displayIndex}");
+            pendingWindows.Enqueue((window, displayIndex));
+            return;
         }
 
-        public static void UpdateScale(float scale)
+        // Update window tracking
+        WindowDisplayMap[window] = displayIndex;
+
+        Logger.LogDebug($"SetDisplay({targetWindow?.name}, {displayIndex})\r\n\tCurrent Transform: {targetWindow?.transform?.name}\r\n\tCurrent Transform Parent: {targetWindow?.transform?.parent?.name}");
+
+        // Get display container from DisplayUtils
+        var displayContainer = DisplayUtils.GetDisplayContainerFromIndex(displayIndex);
+        if (displayContainer == null)
         {
-            GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK+"1");
+            Logger.LogInfo($"SetDisplay({targetWindow?.name}, {displayIndex}) Unable to find display container");
+            return;
+        }
 
-            if (undockParent == null)
-                return;
+        // Get display settings for scaling
+        var displaySettings = DisplayUtils.GetDisplaySettings(displayIndex);
+        var scale = displaySettings.scale;
 
-            for (int i = 0; i < undockParent.transform.childCount; i++)
+        //update scaling for new display
+        targetWindow.transform.SetLossyScale(scale);
+
+        Logger.LogDebug($"SetDisplay({targetWindow?.name}, {displayIndex}) New parent: {displayContainer.name}");
+        targetWindow.transform.SetParent(displayContainer.transform);
+
+        // Update dropdown if it exists
+        if (WindowSelectorMap.TryGetValue(window, out var dropdown))
+        {
+            dropdown.value = displayIndex;
+            dropdown.RefreshShownValue();
+        }
+    }
+
+    public static void UpdateScale(int display, float scale)
+    {
+        if (display == 0)
+            return;
+
+        foreach (var windowEntry in WindowDisplayMap.Where(w => w.Value == display))
+        {
+            var window = windowEntry.Key;
+            window?.transform.SetLossyScale(scale);
+        }
+    }
+
+    public static void SetLossyScale(this Transform targetTransform, float lossyScale)
+    {
+        targetTransform.localScale = new Vector3(targetTransform.localScale.x * (lossyScale / targetTransform.lossyScale.x),
+                                                 targetTransform.localScale.y * (lossyScale / targetTransform.lossyScale.y),
+                                                 targetTransform.localScale.z * (lossyScale / targetTransform.lossyScale.z));
+    }
+
+    public static int GetDisplayForWindow(this Window window)
+    {
+        int display = 0;
+
+        //check fastpath first
+        if (WindowDisplayMap.TryGetValue(window, out display))
+            return display;
+
+        // Get parent container
+        var container = window.transform.parent.gameObject;
+        display = DisplayUtils.GetDisplayIndexForContainer(container);
+
+        return display;
+    }
+
+    public static void SetupWindow(this Window window)
+    {
+        int currentIndex = 0;
+        TMP_Dropdown selector;
+
+        //capture this window
+        if (!WindowDisplayMap.TryGetValue(window, out currentIndex))
+        {
+            currentIndex = window.GetDisplayForWindow();
+            WindowDisplayMap[window] = currentIndex;
+        }
+
+        //add a titlebar selector
+        if (!WindowSelectorMap.TryGetValue(window, out selector))
+        {
+            selector = CreateDropdown(window);
+            Logger.LogDebug($"SetupWindow({window.name}) selector is null {selector == null}");
+            if (selector != null)
+                WindowSelectorMap[window] = selector;
+            else
+                Logger.LogInfo($"Failed to create dropdown for window ({window.name})");
+        }
+    }
+
+    private static TMP_Dropdown CreateDropdown(Window window)
+    {
+        //no point if there's only one display
+        if (DisplayUtils.DisplayCount < 2)
+            return null;
+
+        //find the title bar
+        GameObject tb = window.transform.Find("Chrome/Title Bar").gameObject;
+        if (tb == null)
+            return null;
+
+        //create a container for our dropdown
+        GameObject goSelector = new GameObject("Screen Selector");
+        RectTransform rtSelector = goSelector.AddComponent<RectTransform>();
+        goSelector.transform.SetParent(tb.transform, false);
+
+        //position dropdown
+        rtSelector.SetInsetAndSizeFromParentEdge(RectTransform.Edge.Top, -2, 20);
+        rtSelector.SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, 10, 40);
+
+        //Create a UI panel and build the dropdown inside it
+        UIPanel.Create(rtSelector, GameObject.FindObjectOfType<ProgrammaticWindowCreator>().builderAssets, delegate (UIPanelBuilder builder)
+        {
+            Logger.LogDebug($"Getting current display for window \'{window.name}\' selector...");
+            int currentDisp = window.GetDisplayForWindow();
+            Logger.LogDebug($"Display found: {currentDisp}");
+            RectTransform dropdown = null;
+
+            // Get display names/numbers from active displays
+            List<string> displayOptions = [];
+            for (int i = 0; i < DisplayUtils.DisplayCount; i++)
+                displayOptions.Add(i.ToString());
+
+            dropdown = builder.AddDropdown(displayOptions, currentDisp, delegate (int index)
             {
-                Window window = undockParent.transform.GetChild(i).GetComponent<Window>();
-                if (window != null && window.IsShown)
+                Logger.LogInfo($"Window {window.name} selected index: {index}");
+                window.SetDisplay(index);
+                window.ClampToParentBounds();
+            });
+
+            //Disable the background image, looks nicer on the title bar
+            dropdown.Find("Background Image").gameObject.SetActive(false);
+            //dropdown.Find("Arrow").gameObject.SetActive(false);
+
+        });
+
+        return tb.GetComponentInChildren<TMP_Dropdown>();
+    }
+
+    public static void ReturnAllWindowsToMain()
+    {
+        Logger.LogDebug("Moving all windows to main display");
+
+        // Use our existing window tracking
+        foreach (var kvp in WindowDisplayMap)
+        {
+            try
+            {
+                var window = kvp.Key;
+                var currentDisplay = kvp.Value;
+
+                // Only move windows that aren't already on main display
+                if (currentDisplay != 0 && window.IsShown)
                 {
-                    window.transform.SetLossyScale(new Vector3(scale, scale, scale));
+                    window.SetDisplay(0);
                 }
             }
-        }
-
-        public static void SetLossyScale(this Transform targetTransform, Vector3 lossyScale)
-        {
-            targetTransform.localScale = new Vector3(targetTransform.localScale.x * (lossyScale.x / targetTransform.lossyScale.x),
-                                                     targetTransform.localScale.y * (lossyScale.y / targetTransform.lossyScale.y),
-                                                     targetTransform.localScale.z * (lossyScale.z / targetTransform.lossyScale.z));
-        }
-
-        public static int GetDisplayForWindow(this Component window)
-        {
-            int display = 0;
-
-            string canvasName = window.transform.parent.name;
-            Logger.LogDebug($"GetDisplayForWindow({window.name}): canvas: {canvasName}");
-
-            if ( canvasName == Multiscreen.MODALS)
-                return 0;
-            
-            if(canvasName.StartsWith(Multiscreen.UNDOCK) && int.TryParse(canvasName.Substring(Multiscreen.UNDOCK.Length), out  display))
+            catch (Exception ex)
             {
-                Logger.LogDebug($"GetDisplayForWindow({window.name}): display: {display}");
-                return display;
+                Logger.LogInfo($"ReturnAllWindowsToMain() Error closing windows!:\r\n{ex.Message}");
             }
-            else
-            {
-                Logger.LogDebug($"GetDisplayForWindow({window.name}): StartsWith:{canvasName.StartsWith(Multiscreen.UNDOCK)} TryParse: {int.TryParse(canvasName.Substring(Multiscreen.UNDOCK.Length), out display)}");
-            }
+        }
+    }
 
-            return 0;
+    public static IEnumerable<(Window window, int display)> GetWindowsOnDisplay(int displayIndex)
+    {
+        return WindowDisplayMap
+            .Where(kvp => kvp.Value == displayIndex)
+            .Select(kvp => (kvp.Key, kvp.Value));
+    }
+
+    public static IEnumerable<Window> GetAllWindows()
+    {
+        return WindowDisplayMap.Keys;
+    }
+
+    public static void ProcessQueuedWindows()
+    {
+        Logger.LogInfo($"Processing {pendingWindows.Count} queued windows");
+        while (pendingWindows.Count > 0)
+        {
+            var (window, display) = pendingWindows.Dequeue();
+            window.SetDisplay(display);
         }
     }
 }

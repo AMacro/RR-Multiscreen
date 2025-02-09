@@ -5,10 +5,10 @@ namespace Multiscreen.Util;
 
 public enum LogLevel
 {
-    Info=0,
-    Debug=1,
-    Trace=2,
-    Verbose=3
+    Info = 0,
+    Debug = 1,
+    Trace = 2,
+    Verbose = 3
 }
 
 public static class Logger
@@ -27,7 +27,7 @@ public static class Logger
     public static void Log(object msg, LogLevel level = LogLevel.Info)
     {
         WriteLog($"[Info] {msg}");
-    } 
+    }
     public static void LogInfo(object msg)
     {
         if (Multiscreen.settings.DebugLogging >= LogLevel.Info)
@@ -67,4 +67,3 @@ public static class Logger
     #endregion
 
 }
-

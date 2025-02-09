@@ -23,16 +23,21 @@ public static class WindowManager_Patch
     {
         Logger.LogVerbose($"Hit Test({mousePosition})");
 
-        // if we're not on the second display then hand back to the game's code
-        if (mousePosition.z != Multiscreen.targetDisplay)
+        // Get display index from mouse position Z coordinate
+        int displayIndex = (int)mousePosition.z;
+
+        // Let game handle main display hit testing
+        if (displayIndex == 0)
             return true;
 
-        GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK + "1");
-        if (undockParent == null)
+        // Get display container
+        var displayContainer = DisplayUtils.GetDisplayContainerFromIndex(displayIndex);
+        if (displayContainer == null)
             return true;
 
-        // Get all visible windows sorted by Z-order (top to bottom)
-        var windows = undockParent.GetComponentsInChildren<Window>()
+        // Get all visible windows for the container sorted by Z-order (top to bottom)
+        var windows = WindowUtils.GetWindowsOnDisplay(displayIndex)
+            .Select(x => x.window)
             .Where(w => w != null && w.IsShown)
             .OrderByDescending(w => w.transform.GetSiblingIndex());
 
@@ -52,27 +57,13 @@ public static class WindowManager_Patch
         return true;
     }
 
-
     [HarmonyPrefix]
     [HarmonyPatch(typeof(WindowManager), nameof(WindowManager.CloseAllWindows))]
     private static void CloseAllWindows(WindowManager __instance)
     {
         Logger.LogDebug($"Closing All Windows");
-        GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK);
 
-        if (undockParent == null)
-            return;
-
-        //close all undocked windows
-        for (int i = 0; i < undockParent.transform.childCount; i++)
-        {
-            Window window = undockParent.transform.GetChild(i).GetComponent<Window>();
-            if (window != null && window.IsShown)
-            {
-                window.SetDisplay(false);
-                //window.CloseWindow();                
-            }
-        }
+        WindowUtils.ReturnAllWindowsToMain();
 
         Logger.LogDebug($"End Closing All Windows");
     }

@@ -15,7 +15,7 @@ public static class CompanyWindowPatch
     private static bool Awake(CompanyWindow __instance)
     {
         Logger.LogTrace($"CompanyWindow.Awake() {__instance.name}");
-        __instance.SetDisplay(true);
+        __instance.SetDisplay(1); //todo update this to use settings
         return true;
     }
 }

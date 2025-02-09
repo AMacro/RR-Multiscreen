@@ -14,7 +14,7 @@ public static class MapWindowPatch
     private static bool Start(MapWindow __instance)
     {
         Logger.LogTrace($"MapWindow.Start() {__instance.name}");
-        __instance.SetDisplay(true);
+        __instance.SetDisplay(1); //todo update this to use settings
 
         return true;
     }

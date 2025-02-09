@@ -20,7 +20,7 @@ public static class GenericWindowInstancePatch
         var types = GenericWindowInstanceHelper.GetWindowTypesToPatch();
         var methods = types.SelectMany(t => GenericWindowInstanceHelper.GetMethodsToPatch(t)).ToList();
 
-        Logger.LogDebug(()=>
+        Logger.LogDebug(() =>
         {
             StringBuilder sb = new();
 
@@ -37,27 +37,22 @@ public static class GenericWindowInstancePatch
 
     public static bool Prefix(MethodBase __originalMethod, ref object __result)
     {
-
         var windowType = __originalMethod.DeclaringType;
-        Logger.LogDebug($"Custom Instance/Shared getter called {windowType}");
+        Logger.LogVerbose($"Custom Instance/Shared getter called {windowType}");
 
-        GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK);
-
-        if (undockParent != null)
+        
+        foreach (var window in WindowUtils.GetAllWindows())
         {
-            foreach (Transform child in undockParent.transform)
+            var component = window.GetComponent(windowType);
+            if (component != null)
             {
-                var component = child.GetComponent(windowType);
-                if (component != null)
-                {
-                    Logger.LogDebug($"Custom Instance/Shared getter called {windowType} Found!");
-                    __result = component;
-                    return false;
-                }
+                Logger.LogVerbose($"Custom Instance/Shared getter called {windowType} Found!");
+                __result = component;
+                return false;
             }
         }
 
-        Logger.LogDebug($"Custom Instance/Shared getter called {windowType} Not found, passing to default!");
+        Logger.LogVerbose($"Custom Instance/Shared getter called {windowType} Not found, passing to default!");
 
         return true;
     }
@@ -126,6 +121,6 @@ public static class GenericWindowInstanceHelper
         if (instanceProp?.GetGetMethod(true) != null)  // true to get non-public accessor
             methods.Add(instanceProp.GetGetMethod(true));
 
-        return methods; 
+        return methods;
     }
-}
+}   
