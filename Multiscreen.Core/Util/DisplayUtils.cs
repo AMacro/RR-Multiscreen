@@ -4,16 +4,57 @@ using System.Collections;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
+using System.IO;
+using System.Runtime.InteropServices;
 
 namespace Multiscreen.Util;
 
 public static class DisplayUtils
 {
+    #region Native functions
+    [DllImport("user32.dll")]
+    private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumProc lpfnEnum, IntPtr dwData);
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFOEX lpmi);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct MONITORINFOEX
+    {
+        public int Size;
+        public RECT Monitor;
+        public RECT WorkArea;
+        public uint Flags;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string DeviceName;
+    }
+
+    private delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData);
+
+    #endregion
+
+    public class MonitorInfo
+    {
+        public RECT Bounds { get; set; }
+        public bool IsPrimary { get; set; }
+        public string Name { get; set; }
+    }
+
     private const string UNDOCK = "Canvas - Undock #";
     private const string MODALS = "Canvas - Modals";
     private const string DISPLAY_FOCUS_MANAGER = "DisplayFocusManager";
 
     private static readonly List<ActiveDisplayInfo> ActiveDisplays = [];
+
     public static bool FocusManagerActive { get; private set; }
     public static int DisplayCount => ActiveDisplays.Count;
     public static bool Initialised { get; private set; }
@@ -74,6 +115,11 @@ public static class DisplayUtils
             var logicDisplay = Array.IndexOf(settings.displays, displaySetting);
             ActivateDisplay(logicDisplay, displaySetting);
         }
+
+        List<DisplayInfo> displays = new List<DisplayInfo>();
+        Screen.GetDisplayLayout(displays);
+
+        DrawDisplayLayout();
     }
 
     private static void InitialiseMain(DisplaySettings settings, int logicDisplay = 0)
@@ -298,5 +344,152 @@ public static class DisplayUtils
         }
         Logger.Log($"GetDisplaySettings({displayIndex}) return");
         return ActiveDisplays[displayIndex].Settings;
+    }
+
+    public static void DrawDisplayLayout()
+    {
+        // Ensure monitors are enumerated
+        var monitors = GetMonitorLayout();
+
+        // Validate we have monitors to draw
+        if (monitors == null || monitors.Count == 0)
+        {
+            Logger.LogInfo("No monitors detected to draw layout");
+            return;
+        }
+
+        int width = 1920;
+        int height = 1080;
+
+        // Calculate monitor bounds
+        int minX = monitors.Min(m => m.Bounds.Left);
+        int minY = monitors.Min(m => m.Bounds.Top);
+        int maxX = monitors.Max(m => m.Bounds.Right);
+        int maxY = monitors.Max(m => m.Bounds.Bottom);
+
+        Logger.LogInfo($"Monitor bounds: ({minX},{minY}) to ({maxX},{maxY})");
+
+        // Calculate spacing for both directions
+        float spacingX = (maxX - minX) * 0.02f;
+        float spacingY = (maxY - minY) * 0.02f;
+
+        // Count unique vertical and horizontal positions
+        int uniqueVerticalPositions = monitors.Select(m => m.Bounds.Top).Distinct().Count();
+        int uniqueHorizontalPositions = monitors.Select(m => m.Bounds.Left).Distinct().Count();
+
+        // Calculate total dimensions including spacing
+        float totalWidth = maxX - minX + (spacingX * (uniqueHorizontalPositions - 1));
+        float totalHeight = maxY - minY + (spacingY * (uniqueVerticalPositions - 1));
+
+        // Calculate scale to fit everything with padding
+        float scaleX = width * 0.8f / totalWidth;
+        float scaleY = height * 0.8f / totalHeight;
+        float scale = Mathf.Min(scaleX, scaleY);
+
+        Logger.LogInfo($"Scale factor: {scale}");
+
+        // Calculate centering offsets
+        float scaledTotalWidth = totalWidth * scale;
+        float scaledTotalHeight = totalHeight * scale;
+        float centerOffsetX = (width - scaledTotalWidth) * 0.5f;
+        float centerOffsetY = (height - scaledTotalHeight) * 0.5f;
+
+        // Create rendering resources
+        RenderTexture source = RenderTexture.GetTemporary(width, height, 24);
+        RenderTexture dest = RenderTexture.GetTemporary(width, height, 24);
+        Material blitMaterial = new Material(Shader.Find("Unlit/Texture"));
+        blitMaterial.color = Color.white;
+
+        // Setup rendering
+        Graphics.SetRenderTarget(dest);
+        GL.Clear(true, true, Color.black);
+        GL.PushMatrix();
+        GL.LoadPixelMatrix(0, width, height, 0);
+
+        // Draw each monitor
+        foreach (var monitor in monitors)
+        {
+            // Calculate spacing offsets in both directions
+            int monitorsToLeft = monitors.Count(m => m.Bounds.Left < monitor.Bounds.Left);
+            int monitorsAbove = monitors.Count(m => m.Bounds.Top < monitor.Bounds.Top);
+
+            float x = (monitor.Bounds.Left - minX) * scale + (monitorsToLeft * spacingX * scale) + centerOffsetX;
+            float y = (monitor.Bounds.Top - minY) * scale + (monitorsAbove * spacingY * scale) + centerOffsetY;
+            float w = (monitor.Bounds.Right - monitor.Bounds.Left) * scale;
+            float h = (monitor.Bounds.Bottom - monitor.Bounds.Top) * scale;
+
+            Logger.LogInfo($"Drawing monitor at ({x},{y}) size: {w}x{h}");
+            Graphics.DrawTexture(new Rect(x, y, w, h), Texture2D.whiteTexture, blitMaterial);
+        }
+
+        GL.PopMatrix();
+
+        // Save result
+        Texture2D finalTex = new Texture2D(width, height, TextureFormat.RGB24, false);
+        RenderTexture.active = dest;
+        finalTex.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+        finalTex.Apply();
+
+        File.WriteAllBytes(Path.Combine(Multiscreen.ModEntry.Path, "DisplayLayout.png"), finalTex.EncodeToPNG());
+
+        // Cleanup
+        RenderTexture.ReleaseTemporary(source);
+        RenderTexture.ReleaseTemporary(dest);
+    }
+
+    public static List<MonitorInfo> GetMonitorLayout()
+    {
+        var displays = new List<MonitorInfo>();
+
+        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero,
+            (IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData) =>
+            {
+                MONITORINFOEX mi = new MONITORINFOEX();
+                mi.Size = Marshal.SizeOf(typeof(MONITORINFOEX));
+
+                if (GetMonitorInfo(hMonitor, ref mi))
+                {
+                    var monitorInfo = new MonitorInfo
+                    {
+                        Bounds = mi.Monitor,
+                        IsPrimary = mi.Flags == 1,
+                        Name = mi.DeviceName
+                    };
+                    displays.Add(monitorInfo);
+                }
+                return true;
+            }, IntPtr.Zero);
+
+        return displays;
+    }
+
+    public static List<MonitorInfo> GetNormalisedMonitorLayout(List<MonitorInfo> monitors)
+    {
+        List <MonitorInfo> result = [];
+
+        // Find the leftmost and topmost coordinates
+        int minX = monitors.Min(m => m.Bounds.Left);
+        int minY = monitors.Min(m => m.Bounds.Top);
+
+        // Shift all monitors so the leftmost and topmost points are at (0,0)
+        foreach (var monitor in monitors)
+        {
+            var normalizedMonitor = new MonitorInfo
+            {
+                Name = monitor.Name,
+                IsPrimary = monitor.IsPrimary,
+                Bounds = new RECT
+                {
+                    Left = monitor.Bounds.Left - minX,
+                    Right = monitor.Bounds.Right - minX,
+                    Top = monitor.Bounds.Top - minY,
+                    Bottom = monitor.Bounds.Bottom - minY
+                }
+            };
+
+            result.Add(normalizedMonitor);
+        }
+
+        return result;
     }
 }
