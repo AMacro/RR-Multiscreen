@@ -78,6 +78,7 @@
       <HintPath>$(InstallDir)\Railroader_Data\Managed\</HintPath>
     </Reference>
 	  <Reference Include="UnityEngine.IMGUIModule" />
+	  <Reference Include="UnityEngine.ImageConversionModule" />
 	  <Reference Include="UnityEngine.JSONSerializeModule" />
 	  <Reference Include="UnityEngine.PhysicsModule" />
 	  <Reference Include="UnityEngine.UI">
