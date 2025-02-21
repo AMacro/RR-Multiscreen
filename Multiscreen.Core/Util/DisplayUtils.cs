@@ -67,7 +67,7 @@ public static class DisplayUtils
         public DisplaySettings Settings { get; set; }
     }
 
-    private class CoroutineRunner : MonoBehaviour {}
+    private class CoroutineRunner : MonoBehaviour { }
 
     public static void InitialiseDisplays(Settings settings)
     {
@@ -75,13 +75,10 @@ public static class DisplayUtils
 
         //default case if no settings/bad settings
         var defaultDisplaySettings = new DisplaySettings
-            {
-                mode = DisplayMode.Main,
-                scale = 1f
-            };
-
-        List<DisplayInfo> displays = new List<DisplayInfo>();
-        Screen.GetDisplayLayout(displays);
+        {
+            mode = DisplayMode.Main,
+            scale = 1f
+        };
 
         // No settings - register main game on current display
         if (settings.displays == null || settings.displays.Length == 0)
@@ -153,14 +150,14 @@ public static class DisplayUtils
         GameObject modalContainer = null;
 
         // Find MODALS container
-        yield return new WaitUntil(()=> modalContainer = GameObject.Find(MODALS));
+        yield return new WaitUntil(() => modalContainer = GameObject.Find(MODALS));
 
         Logger.LogInfo("WaitForModals() Found Modals container");
 
         info.DockContainer = modalContainer;
 
         GameObject.Destroy(coroutineObj);
-        
+
         Initialised = true;
         WindowUtils.ProcessQueuedWindows();
     }
@@ -319,14 +316,14 @@ public static class DisplayUtils
         {
             Logger.Log($"Display info missing for index {displayIndex}");
             return null;
-        } 
-        
+        }
+
         if (displayInfo.DockContainer == null)
         {
             Logger.Log($"Display container missing for index {displayIndex}");
             return null;
         }
-        
+
         if (displayInfo.Settings == null)
         {
             Logger.Log($"Display Settings missing for index {displayIndex}");
