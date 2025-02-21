@@ -176,19 +176,14 @@ public static class WindowUtils
     {
         Logger.LogDebug("Moving all windows to main display");
 
+        var windowsToMove = WindowDisplayMap.Keys.ToList();
+
         // Use our existing window tracking
-        foreach (var kvp in WindowDisplayMap)
+        foreach (var window in windowsToMove)
         {
             try
             {
-                var window = kvp.Key;
-                var currentDisplay = kvp.Value;
-
-                // Only move windows that aren't already on main display
-                if (currentDisplay != 0 && window.IsShown)
-                {
-                    window.SetDisplay(0);
-                }
+                window?.SetDisplay(0);
             }
             catch (Exception ex)
             {
