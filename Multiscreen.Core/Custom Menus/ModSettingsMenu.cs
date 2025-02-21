@@ -11,6 +11,7 @@ using Helpers;
 using Multiscreen.Util;
 using Logger = Multiscreen.Util.Logger;
 using System;
+using UnityEngine.UI;
 
 namespace Multiscreen.CustomMenu;
 
@@ -241,25 +242,140 @@ public class ModSettingsMenu : MonoBehaviour
     }
     private void BuildDisplayPanel(UIPanelBuilder builder)
     {
+        var monitors = DisplayUtils.GetNormalisedMonitorLayout(DisplayUtils.GetMonitorLayout());
 
-        builder.AddField("Display", builder.AddDropdownIntPicker(values, selectedDisplay, (int i) => (i >= 0) ? $"Display: {i} ({displays[i].name})" : $"00", canWrite: true, delegate (int i)
+        Logger.LogInfo("=== Monitor Details ===");
+        foreach (var monitor in monitors)
         {
-            Logger.LogDebug($"Selected Display: {i}");
+            Logger.LogInfo($"Monitor {monitor.Name}:");
+            Logger.LogInfo($"  True Position: ({monitor.Bounds.Left},{monitor.Bounds.Top})");
+            Logger.LogInfo($"  True Size: {monitor.Bounds.Right - monitor.Bounds.Left}x{monitor.Bounds.Bottom - monitor.Bounds.Top}");
+        }
 
-            //todo load display settings
+        int maxX = monitors.Max(m => m.Bounds.Right);
+        int maxY = monitors.Max(m => m.Bounds.Bottom);
+        Logger.LogInfo($"Total layout size: {maxX}x{maxY}");
 
-        }));
+        float scaleX = 400f / maxX;
+        float scaleY = 300f / maxY;
+        float scale = Mathf.Min(scaleX, scaleY);
+        Logger.LogInfo($"Scale factors - X:{scaleX:F6} Y:{scaleY:F6} Used:{scale:F6}");
 
-        List<int> DisplayModeValues = new();
-        DisplayModeValues = DisplayModes.Select((String r, int i) => i).ToList();
-
-        builder.AddField("Display Mode", builder.AddDropdownIntPicker(DisplayModeValues, 0, (int i) => (i >= 0) ? DisplayModes[i].ToString() : DisplayModes[0], canWrite: true, delegate (int i)
+        Logger.LogInfo("=== Scaled Dimensions ===");
+        foreach (var monitor in monitors)
         {
-            Logger.LogDebug($"Selected Display: {i}");
+            float scaledX = monitor.Bounds.Left * scale;
+            float scaledY = monitor.Bounds.Top * scale;
+            float scaledW = (monitor.Bounds.Right - monitor.Bounds.Left) * scale;
+            float scaledH = (monitor.Bounds.Bottom - monitor.Bounds.Top) * scale;
 
-            //todo load display settings
+            Logger.LogInfo($"Monitor {monitor.Name}:");
+            Logger.LogInfo($"  Scaled Position: ({scaledX:F2},{scaledY:F2})");
+            Logger.LogInfo($"  Scaled Size: {scaledW:F2}x{scaledH:F2}");
+        }
 
-        }));
+        var container = builder.CreateRectView("MonitorLayout", 400, 300);
+
+        foreach (var monitor in monitors)
+        {
+            float w = (monitor.Bounds.Right - monitor.Bounds.Left) * scale;
+            float h = (monitor.Bounds.Bottom - monitor.Bounds.Top) * scale;
+            float x = monitor.Bounds.Left * scale;
+            float y = monitor.Bounds.Top * scale;
+
+            var buttonObj = new GameObject($"Monitor_{monitor.Name}");
+            buttonObj.transform.SetParent(container, false);
+
+            var rectTransform = buttonObj.AddComponent<RectTransform>();
+            rectTransform.anchorMin = new Vector2(0, 1f);
+            rectTransform.anchorMax = new Vector2(0, 1f);
+            rectTransform.pivot = new Vector2(0, 1f);
+            rectTransform.sizeDelta = new Vector2(w, h);
+            rectTransform.anchoredPosition = new Vector2(x, -y);
+
+            UIPanel.Create(rectTransform, assets, layoutBuilder => {
+                layoutBuilder.AddButton($"{monitor.Name}\n{w:F0}x{h:F0}", () => {
+                    selectedDisplay = monitors.IndexOf(monitor);
+                    builder.Rebuild();
+                }).Width(w).Height(h);
+            });
+
+            Logger.LogInfo($"Final button dimensions for {monitor.Name}: {rectTransform.rect.width}x{rectTransform.rect.height}");
+        }
+
+
+        //UIPanel.Create(builder._container, assets, delegate (UIPanelBuilder layoutBuilder)
+        //{
+        //    var monitors = DisplayUtils.GetNormalisedMonitorLayout(DisplayUtils.GetMonitorLayout());
+        //    Logger.LogInfo($"Monitor count: {monitors.Count}");
+
+        //    // Calculate monitor bounds - use direct max values since coords are normalized
+        //    int maxX = monitors.Max(m => m.Bounds.Right);
+        //    int maxY = monitors.Max(m => m.Bounds.Bottom);
+
+        //    // Calculate scale to fit in UI
+        //    float scaleX = 400f / maxX;
+        //    float scaleY = 300f / maxY;
+        //    float scale = Mathf.Min(scaleX, scaleY);
+
+        //    builder.HStack(layoutBuilder => {
+        //        foreach (var monitor in monitors)
+        //        {
+        //            float x = monitor.Bounds.Left * scale;
+        //            float y = monitor.Bounds.Top * scale;
+        //            float w = (monitor.Bounds.Right - monitor.Bounds.Left) * scale;
+        //            float h = (monitor.Bounds.Bottom - monitor.Bounds.Top) * scale;
+
+        //            var button = layoutBuilder.AddButton(monitor.Name, () => {
+        //                selectedDisplay = monitors.IndexOf(monitor);
+        //                builder.Rebuild();
+        //            });
+        //            button.Width(w).Height(h);
+        //        }
+        //    });
+
+
+        // Create monitor buttons using proper UI hierarchy
+        //foreach (var monitor in monitors)
+        //{
+        //    var element = layoutBuilder.AddButton($"{monitor.Name}",
+        //    () => {
+        //        selectedDisplay = monitors.IndexOf(monitor);
+        //        builder.Rebuild();
+        //    });
+
+        //}
+        //});
+
+        //// Add display settings below the layout panel
+        //builder.AddField("Display Mode", builder.AddDropdownIntPicker(
+        //    DisplayModeValues,
+        //    selectedDisplay,
+        //    (int i) => (i >= 0) ? DisplayModes[i].ToString() : DisplayModes[0],
+        //    canWrite: true,
+        //    delegate (int i)
+        //    {
+        //        Logger.LogDebug($"Selected Mode: {i}");
+        //    }));
+
+        //builder.AddField("Display", builder.AddDropdownIntPicker(values, selectedDisplay, (int i) => (i >= 0) ? $"Display: {i} ({displays[i].name})" : $"00", canWrite: true, delegate (int i)
+        //{
+        //    Logger.LogDebug($"Selected Display: {i}");
+
+        //    //todo load display settings
+
+        //}));
+
+        //List<int> DisplayModeValues = new();
+        //DisplayModeValues = DisplayModes.Select((String r, int i) => i).ToList();
+
+        //builder.AddField("Display Mode", builder.AddDropdownIntPicker(DisplayModeValues, 0, (int i) => (i >= 0) ? DisplayModes[i].ToString() : DisplayModes[0], canWrite: true, delegate (int i)
+        //{
+        //    Logger.LogDebug($"Selected Display: {i}");
+
+        //    //todo load display settings
+
+        //}));
 
         //builder.AddField("UI Scale", builder.AddSlider(() => Multiscreen.settings.secondDisplayScale, () => string.Format("{0}%", Mathf.Round(Multiscreen.settings.secondDisplayScale * 100f)), delegate (float f)
         //{
