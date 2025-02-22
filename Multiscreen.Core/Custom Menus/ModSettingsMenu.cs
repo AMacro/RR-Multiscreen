@@ -12,14 +12,20 @@ using Multiscreen.Util;
 using Logger = Multiscreen.Util.Logger;
 using System;
 using UnityEngine.UI;
+using static Multiscreen.Util.DisplayUtils;
+using System.Threading;
 
 namespace Multiscreen.CustomMenu;
 
 public class ModSettingsMenu : MonoBehaviour
 {
+    const int SCREEN_LAYOUT_WIDTH = 460;
+    const int SCREEN_LAYOUT_HEIGHT = 200;
+    const int SCREEN_LAYOUT_PADDING = 10;
+
     public GameObject contentPanel;
     public UIBuilderAssets assets;
-    public static readonly UIState<string> SelectedTab = new UIState<string>("disp");
+    public static readonly UIState<string> SelectedTab = new("disp");
     List<DisplayInfo> displays = new();
     List<int> values = new();
 
@@ -35,9 +41,9 @@ public class ModSettingsMenu : MonoBehaviour
     float oldScale;
     float newScale;
 
-    public List<DisplaySettings> newDisplaySettings = new List<DisplaySettings>();
-    public List<DisplaySettings> oldDisplaySettings = new List<DisplaySettings>();
-    public List<string> DisplayModes = new List<string> { "Disabled", "Main Game", "Secondary (Game Background)","Secondary (Solid Background)", "Full Screen Map", "CTC"};
+    public List<DisplaySettings> newDisplaySettings = [];
+    public List<DisplaySettings> oldDisplaySettings = [];
+    public List<string> DisplayModes = ["Disabled", "Main Game", "Secondary (Game Background)","Secondary (Solid Background)", "Full Screen Map", "CTC"];
 
 
     private void Awake()
@@ -243,109 +249,7 @@ public class ModSettingsMenu : MonoBehaviour
     private void BuildDisplayPanel(UIPanelBuilder builder)
     {
         var monitors = DisplayUtils.GetNormalisedMonitorLayout(DisplayUtils.GetMonitorLayout());
-
-        Logger.LogInfo("=== Monitor Details ===");
-        foreach (var monitor in monitors)
-        {
-            Logger.LogInfo($"Monitor {monitor.Name}:");
-            Logger.LogInfo($"  True Position: ({monitor.Bounds.Left},{monitor.Bounds.Top})");
-            Logger.LogInfo($"  True Size: {monitor.Bounds.Right - monitor.Bounds.Left}x{monitor.Bounds.Bottom - monitor.Bounds.Top}");
-        }
-
-        int maxX = monitors.Max(m => m.Bounds.Right);
-        int maxY = monitors.Max(m => m.Bounds.Bottom);
-        Logger.LogInfo($"Total layout size: {maxX}x{maxY}");
-
-        float scaleX = 400f / maxX;
-        float scaleY = 300f / maxY;
-        float scale = Mathf.Min(scaleX, scaleY);
-        Logger.LogInfo($"Scale factors - X:{scaleX:F6} Y:{scaleY:F6} Used:{scale:F6}");
-
-        Logger.LogInfo("=== Scaled Dimensions ===");
-        foreach (var monitor in monitors)
-        {
-            float scaledX = monitor.Bounds.Left * scale;
-            float scaledY = monitor.Bounds.Top * scale;
-            float scaledW = (monitor.Bounds.Right - monitor.Bounds.Left) * scale;
-            float scaledH = (monitor.Bounds.Bottom - monitor.Bounds.Top) * scale;
-
-            Logger.LogInfo($"Monitor {monitor.Name}:");
-            Logger.LogInfo($"  Scaled Position: ({scaledX:F2},{scaledY:F2})");
-            Logger.LogInfo($"  Scaled Size: {scaledW:F2}x{scaledH:F2}");
-        }
-
-        var container = builder.CreateRectView("MonitorLayout", 400, 300);
-
-        foreach (var monitor in monitors)
-        {
-            float w = (monitor.Bounds.Right - monitor.Bounds.Left) * scale;
-            float h = (monitor.Bounds.Bottom - monitor.Bounds.Top) * scale;
-            float x = monitor.Bounds.Left * scale;
-            float y = monitor.Bounds.Top * scale;
-
-            var buttonObj = new GameObject($"Monitor_{monitor.Name}");
-            buttonObj.transform.SetParent(container, false);
-
-            var rectTransform = buttonObj.AddComponent<RectTransform>();
-            rectTransform.anchorMin = new Vector2(0, 1f);
-            rectTransform.anchorMax = new Vector2(0, 1f);
-            rectTransform.pivot = new Vector2(0, 1f);
-            rectTransform.sizeDelta = new Vector2(w, h);
-            rectTransform.anchoredPosition = new Vector2(x, -y);
-
-            UIPanel.Create(rectTransform, assets, layoutBuilder => {
-                layoutBuilder.AddButton($"{monitor.Name}\n{w:F0}x{h:F0}", () => {
-                    selectedDisplay = monitors.IndexOf(monitor);
-                    builder.Rebuild();
-                }).Width(w).Height(h);
-            });
-
-            Logger.LogInfo($"Final button dimensions for {monitor.Name}: {rectTransform.rect.width}x{rectTransform.rect.height}");
-        }
-
-
-        //UIPanel.Create(builder._container, assets, delegate (UIPanelBuilder layoutBuilder)
-        //{
-        //    var monitors = DisplayUtils.GetNormalisedMonitorLayout(DisplayUtils.GetMonitorLayout());
-        //    Logger.LogInfo($"Monitor count: {monitors.Count}");
-
-        //    // Calculate monitor bounds - use direct max values since coords are normalized
-        //    int maxX = monitors.Max(m => m.Bounds.Right);
-        //    int maxY = monitors.Max(m => m.Bounds.Bottom);
-
-        //    // Calculate scale to fit in UI
-        //    float scaleX = 400f / maxX;
-        //    float scaleY = 300f / maxY;
-        //    float scale = Mathf.Min(scaleX, scaleY);
-
-        //    builder.HStack(layoutBuilder => {
-        //        foreach (var monitor in monitors)
-        //        {
-        //            float x = monitor.Bounds.Left * scale;
-        //            float y = monitor.Bounds.Top * scale;
-        //            float w = (monitor.Bounds.Right - monitor.Bounds.Left) * scale;
-        //            float h = (monitor.Bounds.Bottom - monitor.Bounds.Top) * scale;
-
-        //            var button = layoutBuilder.AddButton(monitor.Name, () => {
-        //                selectedDisplay = monitors.IndexOf(monitor);
-        //                builder.Rebuild();
-        //            });
-        //            button.Width(w).Height(h);
-        //        }
-        //    });
-
-
-        // Create monitor buttons using proper UI hierarchy
-        //foreach (var monitor in monitors)
-        //{
-        //    var element = layoutBuilder.AddButton($"{monitor.Name}",
-        //    () => {
-        //        selectedDisplay = monitors.IndexOf(monitor);
-        //        builder.Rebuild();
-        //    });
-
-        //}
-        //});
+        BuildScreenLayout(builder, monitors);
 
         //// Add display settings below the layout panel
         //builder.AddField("Display Mode", builder.AddDropdownIntPicker(
@@ -358,13 +262,13 @@ public class ModSettingsMenu : MonoBehaviour
         //        Logger.LogDebug($"Selected Mode: {i}");
         //    }));
 
-        //builder.AddField("Display", builder.AddDropdownIntPicker(values, selectedDisplay, (int i) => (i >= 0) ? $"Display: {i} ({displays[i].name})" : $"00", canWrite: true, delegate (int i)
-        //{
-        //    Logger.LogDebug($"Selected Display: {i}");
+        builder.AddField("Display", builder.AddDropdownIntPicker(values, selectedDisplay, (int i) => (i >= 0) ? $"Display: {i} ({displays[i].name})" : $"00", canWrite: true, delegate (int i)
+        {
+            Logger.LogDebug($"Selected Display: {i}");
 
-        //    //todo load display settings
+            //todo load display settings
 
-        //}));
+        }));
 
         //List<int> DisplayModeValues = new();
         //DisplayModeValues = DisplayModes.Select((String r, int i) => i).ToList();
@@ -429,9 +333,83 @@ public class ModSettingsMenu : MonoBehaviour
     private void BuildWindowsPanel(UIPanelBuilder builder)
     {
 
-
         builder.AddExpandingVerticalSpacer();
     }
+
+    private void BuildScreenLayout(UIPanelBuilder builder, List<MonitorInfo> monitors)
+    {
+        // Create a container for the layout
+        var container = builder.CreateRectView("ScreenLayout", SCREEN_LAYOUT_WIDTH, SCREEN_LAYOUT_HEIGHT);
+        container.anchorMin = Vector2.zero;
+        container.anchorMax = Vector2.one;
+        container.offsetMin = Vector2.zero;
+        container.offsetMax = Vector2.zero;
+
+        var spacer = container.gameObject.AddComponent<LayoutElement>();
+        spacer.minWidth = SCREEN_LAYOUT_WIDTH;
+        spacer.minHeight = SCREEN_LAYOUT_HEIGHT;
+
+        // Get the background image from the dropdown prefab and copy its properties
+        var dropdownBackground = assets.dropdownControl.template.GetComponentInChildren<Image>();
+        var bgImage = container.gameObject.AddComponent<Image>();
+        bgImage.sprite = dropdownBackground.sprite;
+        bgImage.type = dropdownBackground.type;
+        bgImage.color = dropdownBackground.color; 
+
+        // Create container for screen buttons
+        var buttonContainer = new GameObject("ButtonContainer").AddComponent<RectTransform>();
+        buttonContainer.SetParent(container, false);
+        buttonContainer.anchorMin = Vector2.zero;
+        buttonContainer.anchorMax = Vector2.one;
+        buttonContainer.offsetMin = new Vector2(SCREEN_LAYOUT_PADDING, SCREEN_LAYOUT_PADDING);
+        buttonContainer.offsetMax = new Vector2(-SCREEN_LAYOUT_PADDING, -SCREEN_LAYOUT_PADDING);
+
+        //max size of layout
+        int maxX = monitors.Max(m => m.Bounds.Right);
+        int maxY = monitors.Max(m => m.Bounds.Bottom);
+
+        float usableWidth = SCREEN_LAYOUT_WIDTH - (2 * SCREEN_LAYOUT_PADDING);
+        float usableHeight = SCREEN_LAYOUT_HEIGHT - (2 * SCREEN_LAYOUT_PADDING);
+
+        // Calculate the scaling factor for the screen buttons
+        float scaleX = (usableWidth) / maxX;
+        float scaleY = (usableHeight) / maxY;
+        float scale = Mathf.Min(scaleX, scaleY);
+
+        foreach (var monitor in monitors)
+        {
+            float w = (monitor.Bounds.Right - monitor.Bounds.Left) * scale;
+            float h = (monitor.Bounds.Bottom - monitor.Bounds.Top) * scale;
+            float x = monitor.Bounds.Left * scale;
+            float y = monitor.Bounds.Top * scale;
+
+            var buttonObj = new GameObject($"Monitor_{monitor.Name}");
+            buttonObj.transform.SetParent(buttonContainer, false);
+
+            var rectTransform = buttonObj.AddComponent<RectTransform>();
+            rectTransform.anchorMin = new Vector2(0, 1f);
+            rectTransform.anchorMax = new Vector2(0, 1f);
+            rectTransform.pivot = new Vector2(0, 1f);
+            rectTransform.sizeDelta = new Vector2(w, h);
+            rectTransform.anchoredPosition = new Vector2(x, -y);
+
+            var index = monitors.IndexOf(monitor);
+            var name = displays[index].name;
+
+            UIPanel.Create(rectTransform, assets, layoutBuilder => {
+
+                layoutBuilder.AddButtonSelectable(
+                    $"Display: {index}\n{name}",
+                    index == selectedDisplay,
+                    () => 
+                    {
+                        selectedDisplay = monitors.IndexOf(monitor);
+                        builder.Rebuild();
+                    }).Width(w).Height(h);
+            });
+        }
+    }
+
     private void ShowRestart()
     {
         EarlyAccessSplash earlyAccessSplash = UnityEngine.Object.FindObjectOfType<EarlyAccessSplash>();
