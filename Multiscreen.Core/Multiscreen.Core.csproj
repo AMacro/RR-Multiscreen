@@ -26,6 +26,7 @@
     <PackageReference Include="Krafs.Publicizer" Version="2.2.1" />
     <PackageReference Include="UnityModManager" Version="0.27.5" />
     <Publicize Include="Assembly-CSharp" IncludeCompilerGeneratedMembers="false" />
+    <Publicize Include="UnityEngine.UI" IncludeCompilerGeneratedMembers="false" />
   </ItemGroup>
 
   <!-- Railroader -->
@@ -99,7 +100,6 @@
 
   <Target Name="SignAssemblies" AfterTargets="BuildBothVersions" Condition="'$(Configuration)'=='Release' AND '$(Cert-Thumb)' != ''"> 
     <Exec Command="&quot;$(SignToolPath)SignTool.exe&quot; sign /sha1 $(Cert-Thumb) /fd SHA256 /t http://timestamp.sectigo.com &quot;$(ProjectDir)bin\MainBuild\net48\Multiscreen.Core.*.dll&quot;" />
-    <!--Exec Command="&quot;$(SignToolPath)SignTool.exe&quot; sign /sha1 $(Cert-Thumb) /fd SHA256 /t http://timestamp.sectigo.com &quot;$(ProjectDir)bin\BetaBuild\net48\Multiscreen.Core.Beta.dll&quot;" /-->
   </Target>
 
   <Target Name="CopyBuildOutputs" AfterTargets="BuildBothVersions" Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='Release'">
