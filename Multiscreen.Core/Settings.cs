@@ -71,7 +71,6 @@ public enum DisplayMode
     Disabled,
     Main,
     Secondary,
-    Solid,
     Map,
     CTC
 }
@@ -99,7 +98,7 @@ public class DisplaySettings : ICloneable<DisplaySettings>
     public int nativeWidth;
     public int nativeHeight;
     public bool solidBG = false;
-    public string bgColour = "000000";
+    public string bgColour = "#000000";
     public bool AllowWindows = true;
 
     public DisplaySettings Clone()

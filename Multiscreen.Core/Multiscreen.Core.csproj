@@ -60,7 +60,6 @@
 
   <!-- Unity -->
   <ItemGroup>
-    <Reference Include="System.Windows.Forms" />
     <Reference Include="UnityEngine">
       <HintPath>$(InstallDir)\Railroader_Data\Managed\</HintPath>
     </Reference>

@@ -6,8 +6,33 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.IO;
 using System.Runtime.InteropServices;
+using Game;
 
 namespace Multiscreen.Util;
+
+[StructLayout(LayoutKind.Sequential)]
+public struct RECT
+{
+    public int Left;
+    public int Top;
+    public int Right;
+    public int Bottom;
+}
+
+public class MonitorInfo
+{
+    public RECT Bounds { get; set; }
+    public bool IsPrimary { get; set; }
+    public string Name { get; set; }
+}
+
+public class ActiveDisplayInfo
+{
+    //public int LogicalIndex { get; set; }  // Current system display number
+    public GameObject DockContainer { get; set; }
+    public RawImage Background { get; set; }
+    public DisplaySettings Settings { get; set; }
+}
 
 public static class DisplayUtils
 {
@@ -17,15 +42,6 @@ public static class DisplayUtils
 
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
     private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFOEX lpmi);
-
-    [StructLayout(LayoutKind.Sequential)]
-    public struct RECT
-    {
-        public int Left;
-        public int Top;
-        public int Right;
-        public int Bottom;
-    }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct MONITORINFOEX
@@ -39,15 +55,7 @@ public static class DisplayUtils
     }
 
     private delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData);
-
     #endregion
-
-    public class MonitorInfo
-    {
-        public RECT Bounds { get; set; }
-        public bool IsPrimary { get; set; }
-        public string Name { get; set; }
-    }
 
     private const string UNDOCK = "Canvas - Undock #";
     private const string MODALS = "Canvas - Modals";
@@ -59,18 +67,14 @@ public static class DisplayUtils
     public static int DisplayCount => ActiveDisplays.Count;
     public static bool Initialised { get; private set; }
 
-    public class ActiveDisplayInfo
-    {
-        //public int LogicalIndex { get; set; }  // Current system display number
-        public GameObject DockContainer { get; set; }
-        public RawImage Background { get; set; }
-        public DisplaySettings Settings { get; set; }
-    }
 
     private class CoroutineRunner : MonoBehaviour { }
 
     public static void InitialiseDisplays(Settings settings)
     {
+        List<DisplayInfo> displays = [];
+        Screen.GetDisplayLayout(displays);
+
         int mainDisplayIndex = 0;
 
         //default case if no settings/bad settings
@@ -83,9 +87,19 @@ public static class DisplayUtils
         // No settings - register main game on current display
         if (settings.displays == null || settings.displays.Length == 0)
         {
-            Logger.LogInfo("Initialising displays, no settings found");
-            settings.displays = [defaultDisplaySettings];
-            InitialiseMain(defaultDisplaySettings);
+            int currentDisplay = displays.FindIndex(d => d.Equals(Screen.mainWindowDisplayInfo));
+            Logger.LogInfo($"No settings found. Initializing with current display {currentDisplay} as main");
+
+            settings.displays = new DisplaySettings[displays.Count];
+            for (int i = 0; i < displays.Count; i++)
+            {
+                settings.displays[i] = new DisplaySettings
+                {
+                    mode = (i == currentDisplay) ? DisplayMode.Main : DisplayMode.Disabled,
+                    AllowWindows = (i == currentDisplay)
+                };
+            }
+            InitialiseMain(settings.displays[currentDisplay], currentDisplay);
             return;
         }
 
@@ -113,10 +127,8 @@ public static class DisplayUtils
             ActivateDisplay(logicDisplay, displaySetting);
         }
 
-        List<DisplayInfo> displays = new List<DisplayInfo>();
-        Screen.GetDisplayLayout(displays);
-
-        DrawDisplayLayout();
+        
+        //DrawDisplayLayout();
     }
 
     private static void InitialiseMain(DisplaySettings settings, int logicDisplay = 0)
@@ -136,7 +148,7 @@ public static class DisplayUtils
             List<DisplayInfo> displays = [];
             Screen.GetDisplayLayout(displays);
 
-            Screen.MoveMainWindowTo(displays[logicDisplay], new Vector2Int(0, 0));
+            //Screen.MoveMainWindowTo(displays[logicDisplay], new Vector2Int(0, 0));
         }
 
         var coroutineObj = new GameObject("WaitforModals");
@@ -279,6 +291,14 @@ public static class DisplayUtils
         return ActiveDisplays[displayIndex].DockContainer;
     }
 
+    public static ActiveDisplayInfo GetDisplayInfoFromIndex(int displayIndex)
+    {
+        if (displayIndex < 0 || displayIndex > ActiveDisplays.Count - 1)
+            return null;
+
+        return ActiveDisplays[displayIndex];
+    }
+
     public static int GetDisplayIndexForContainer(GameObject container)
     {
         // Check active displays first for exact match
@@ -302,14 +322,14 @@ public static class DisplayUtils
         return 0;
     }
 
-    public static DisplaySettings GetDisplaySettings(int displayIndex)
+    public static DisplaySettings GetDisplaySettings(int displayIndex, bool forSettings = false)
     {
         Logger.Log($"GetDisplaySettings({displayIndex}) {ActiveDisplays?.Count}");
 
         if (displayIndex < 0 || displayIndex >= ActiveDisplays.Count)
             return null;
 
-        var displayInfo = ActiveDisplays[displayIndex];
+        var displayInfo = ActiveDisplays[displayIndex]; 
         Logger.Log($"GetDisplaySettings({displayIndex}) got displayInfo");
         // Ensure display info exists
         if (displayInfo == null)
@@ -318,7 +338,7 @@ public static class DisplayUtils
             return null;
         }
 
-        if (displayInfo.DockContainer == null)
+        if (displayInfo.DockContainer == null && !forSettings)
         {
             Logger.Log($"Display container missing for index {displayIndex}");
             return null;
@@ -332,13 +352,14 @@ public static class DisplayUtils
 
         Logger.Log($"GetDisplaySettings({displayIndex}) passed checks");
 
-        //for the main display, we need to use the containers lossy scale
+        //for the main display, we need to use the game's setting
         //todo: see if we can harmonise this in the future
         if (displayIndex == 0)
         {
             Logger.Log($"GetDisplaySettings({displayIndex}) Attempt settings for main");
-            ActiveDisplays[displayIndex].Settings.scale = ActiveDisplays[displayIndex].DockContainer.transform.lossyScale.x;
+            ActiveDisplays[displayIndex].Settings.scale = Preferences.GraphicsCanvasScale;
         }
+
         Logger.Log($"GetDisplaySettings({displayIndex}) return");
         return ActiveDisplays[displayIndex].Settings;
     }
@@ -394,8 +415,10 @@ public static class DisplayUtils
         // Create rendering resources
         RenderTexture source = RenderTexture.GetTemporary(width, height, 24);
         RenderTexture dest = RenderTexture.GetTemporary(width, height, 24);
-        Material blitMaterial = new Material(Shader.Find("Unlit/Texture"));
-        blitMaterial.color = Color.white;
+        Material blitMaterial = new(Shader.Find("Unlit/Texture"))
+        {
+            color = Color.white
+        };
 
         // Setup rendering
         Graphics.SetRenderTarget(dest);

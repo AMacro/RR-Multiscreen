@@ -17,9 +17,9 @@ public static class Multiscreen
 {
     public static UnityModManager.ModEntry ModEntry;
     public static Settings settings;
-    public static int gameDisplay = 0;
-    public static int secondDisplay = 1;
-    public static int targetDisplay = 0;
+    //public static int gameDisplay = 0;
+    //public static int secondDisplay = 1;
+    //public static int targetDisplay = 0;
     public static bool userPrefFullScr;
 
     //private const string LOG_FILE = "multiscreen.log";
