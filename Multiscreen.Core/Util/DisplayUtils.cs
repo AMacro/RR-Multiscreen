@@ -162,10 +162,10 @@ public static class DisplayUtils
 
         // Activate additional displays from settings
         foreach (var displaySetting in settings.displays.Where(d =>
-            d.mode != DisplayMode.Disabled &&
-            d.mode != DisplayMode.Main))
+            d.Mode != DisplayMode.Disabled &&
+            d.Mode != DisplayMode.Main))
         {
-            var logicDisplay = Array.IndexOf(settings.displays, displaySetting);
+            var logicDisplay = settings.displays.IndexOf(displaySetting);
             ActivateDisplay(logicDisplay, displaySetting);
         }
 
@@ -260,15 +260,15 @@ public static class DisplayUtils
         for (int i = 0; i < displays.Count; i++)
         {
             var monitor = GetWindowsMonitorForUnityDisplay(i);
-            if (monitor != null && monitor.DeviceID == targetSettings.DeviceID)
+            if (monitor != null && monitor.DeviceID == targetSettings.DeviceId)
             {
-                Logger.LogInfo($"Moving game window to display {i} ({targetSettings.name})");
+                Logger.LogInfo($"Moving game window to display {i} ({targetSettings.Name})");
                 Screen.MoveMainWindowTo(displays[i], new Vector2Int(0, 0));
                 return;
             }
         }
 
-        Logger.LogInfo($"Could not find Unity display for target monitor: {targetSettings.name}");
+        Logger.LogInfo($"Could not find Unity display for target monitor: {targetSettings.Name}");
     }
 
     private static void RestartApplication()
@@ -333,9 +333,9 @@ public static class DisplayUtils
     {
         var background = canvas.AddComponent<RawImage>();
 
-        background.enabled = settings.solidBG;
+        background.enabled = settings.SolidBg;
 
-        if (ColorUtility.TryParseHtmlString(settings.bgColour, out Color newCol))
+        if (ColorUtility.TryParseHtmlString(settings.BgColour, out Color newCol))
             background.color = newCol;
         else
             background.color = Color.black;
@@ -443,7 +443,7 @@ public static class DisplayUtils
         if (displayIndex == 0)
         {
             Logger.Log($"GetDisplaySettings({displayIndex}) Attempt settings for main");
-            ActiveDisplays[displayIndex].Settings.scale = Preferences.GraphicsCanvasScale;
+            ActiveDisplays[displayIndex].Settings.Scale = Preferences.GraphicsCanvasScale;
         }
 
         Logger.Log($"GetDisplaySettings({displayIndex}) return");

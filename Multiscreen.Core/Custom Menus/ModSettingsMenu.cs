@@ -115,19 +115,19 @@ public class ModSettingsMenu : MonoBehaviour
 
                             if (dispInfo.Background != null)
                             {
-                                dispInfo.Background.enabled = originalSettings.solidBG;
+                                dispInfo.Background.enabled = originalSettings.SolidBg;
 
-                                var colourString = originalSettings.bgColour.StartsWith("#") ?
-                                                  originalSettings.bgColour : "#" + originalSettings.bgColour;
+                                var colourString = originalSettings.BgColour.StartsWith("#") ?
+                                                  originalSettings.BgColour : "#" + originalSettings.BgColour;
 
                                 if (ColorUtility.TryParseHtmlString(colourString, out Color col))
                                     dispInfo.Background.color = col;
                                 else
-                                    Logger.LogInfo($"Failed to parse colour {originalSettings.bgColour}");
+                                    Logger.LogInfo($"Failed to parse colour {originalSettings.BgColour}");
                             }
 
                             if (dispInfo.DockContainer != null)
-                                WindowUtils.UpdateScale(i, originalSettings.scale);
+                                WindowUtils.UpdateScale(i, originalSettings.Scale);
                         }
 
                         MenuManagerPatch._MMinstance.navigationController.Pop();
@@ -145,8 +145,8 @@ public class ModSettingsMenu : MonoBehaviour
                         Multiscreen.settings.displays = pendingSettings.Values.ToList();
 
                         // Check if main display changed
-                        var newMainDisplay = pendingSettings.First(x => x.Value.mode == DisplayMode.Main).Key;
-                        var newActiveDisplays = pendingSettings.Where(x => x.Value.mode != DisplayMode.Disabled).Select(x => x.Key).ToHashSet();
+                        var newMainDisplay = pendingSettings.First(x => x.Value.Mode == DisplayMode.Main).Key;
+                        var newActiveDisplays = pendingSettings.Where(x => x.Value.Mode != DisplayMode.Disabled).Select(x => x.Key).ToHashSet();
 
                         bool requiresRestart = false;
 
@@ -218,7 +218,7 @@ public class ModSettingsMenu : MonoBehaviour
         builder.AddField("Display Mode",
             builder.AddDropdownIntPicker(
                 displayModeValues,
-                (int)currentSettings.mode,
+                (int)currentSettings.Mode,
                 (int i) => (i >= 0) ? displayModes[i] : displayModes[0],
                 canWrite: true,
                 delegate (int i)
@@ -234,12 +234,12 @@ public class ModSettingsMenu : MonoBehaviour
 
 
         builder.AddField("UI Scale",
-            builder.AddSlider(() => currentSettings.scale,
+            builder.AddSlider(() => currentSettings.Scale,
                 () => string.Format("{0}%",
-                Mathf.Round(currentSettings.scale * 100f)),
+                Mathf.Round(currentSettings.Scale * 100f)),
                 delegate (float f)
                 {
-                    currentSettings.scale = f;
+                    currentSettings.Scale = f;
                     if (dispInfo.DockContainer != null)
                         WindowUtils.UpdateScale(selectedDisplay, f);
                 },
@@ -253,15 +253,15 @@ public class ModSettingsMenu : MonoBehaviour
             builder.HStack(delegate (UIPanelBuilder builder)
             {
                 // This setting can only be changed when the display is secondary
-                var enabled = currentSettings.mode == DisplayMode.Secondary;
+                var enabled = currentSettings.Mode == DisplayMode.Secondary;
 
                 builder.Spacer(2f);
 
                 var toggle = builder.AddToggle(
-                    () => dispInfo.Background != null ? dispInfo.Background.enabled : currentSettings.solidBG,
+                    () => dispInfo.Background != null ? dispInfo.Background.enabled : currentSettings.SolidBg,
                     isOn =>
                         {
-                            currentSettings.solidBG = isOn;
+                            currentSettings.SolidBg = isOn;
                             var background = DisplayUtils.GetDisplayInfoFromIndex(selectedDisplay).Background;
 
                             if (background != null)
@@ -274,9 +274,9 @@ public class ModSettingsMenu : MonoBehaviour
 
                 builder.Spacer(2f);
 
-                var colourPicker = builder.AddColorDropdown(currentSettings.bgColour, colour =>
+                var colourPicker = builder.AddColorDropdown(currentSettings.BgColour, colour =>
                 {
-                    currentSettings.bgColour = colour;
+                    currentSettings.BgColour = colour;
 
                     var background = GetDisplayInfoFromIndex(selectedDisplay).Background;
                     if (background != null && ColorUtility.TryParseHtmlString(colour, out Color newCol))
@@ -421,15 +421,15 @@ public class ModSettingsMenu : MonoBehaviour
             var settings = DisplayUtils.GetDisplaySettings(i, true) ??
                 new DisplaySettings
                 {
-                    mode = DisplayMode.Disabled
+                    Mode = DisplayMode.Disabled
                 };
 
             pendingSettings[i] = settings.Clone();
         }
 
-        originalActiveDisplays = new(pendingSettings.Where(x => x.Value.mode != DisplayMode.Disabled).Select(x => x.Key));
+        originalActiveDisplays = new(pendingSettings.Where(x => x.Value.Mode != DisplayMode.Disabled).Select(x => x.Key));
 
-        originalMainDisplay = pendingSettings.First(x => x.Value.mode == DisplayMode.Main).Key;
+        originalMainDisplay = pendingSettings.First(x => x.Value.Mode == DisplayMode.Main).Key;
 
         originalFocusManager = DisplayUtils.FocusManagerActive;
     }
@@ -439,13 +439,13 @@ public class ModSettingsMenu : MonoBehaviour
         if (newMode == DisplayMode.Main)
         {
             // Find and update previous main display
-            var previousMain = pendingSettings.FirstOrDefault(x => x.Value.mode == DisplayMode.Main);
+            var previousMain = pendingSettings.FirstOrDefault(x => x.Value.Mode == DisplayMode.Main);
             if (previousMain.Value != null)
             {
-                previousMain.Value.mode = DisplayMode.Secondary;
+                previousMain.Value.Mode = DisplayMode.Secondary;
             }
         }
-        pendingSettings[displayIndex].mode = newMode;
+        pendingSettings[displayIndex].Mode = newMode;
     }
 
     public void MoveDisplay(int i) 

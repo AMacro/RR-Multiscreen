@@ -4,6 +4,7 @@ using UnityModManagerNet;
 using Multiscreen.Util;
 using static UnityModManagerNet.UnityModManager;
 using Logger = Multiscreen.Util.Logger;
+using System.Collections.Generic;
 
 namespace Multiscreen;
 
@@ -19,15 +20,15 @@ public class Settings : UnityModManager.ModSettings, IDrawable
     public int version = 2;
 
     //V1.x Settings
-    public int gameDisplay = -1;
-    public int secondDisplay = -1;
-    public float secondDisplayScale = 1f;
-    public bool solidBG = false;
-    public string bgColour = "000000";
+    //public int gameDisplay = -1;
+    //public int secondDisplay = -1;
+    //public float secondDisplayScale = 1f;
+    //public bool solidBG = false;
+    //public string bgColour = "000000";
     public bool focusManager = true;
 
     //V2.x Settings 
-    public DisplaySettings[] displays = [];
+    public List<DisplaySettings> displays = [];
     public bool saveWindowsOnExit = true;
     public bool restoreWindowsOnLoad = true;
     public WindowSettings[] windows;
@@ -44,12 +45,14 @@ public class Settings : UnityModManager.ModSettings, IDrawable
 
     public override void Save(UnityModManager.ModEntry modEntry)
     {
-        if(gameDisplay == secondDisplay)
-        {
-            secondDisplay = -1;
-        }
+        //if(gameDisplay == secondDisplay)
+        //{
+        //    secondDisplay = -1;
+        //}
 
-        secondDisplayScale = Mathf.Clamp(secondDisplayScale,0.2f,2f);
+        //secondDisplayScale = Mathf.Clamp(secondDisplayScale,0.2f,2f);
+
+        //Todo: add validation code for displays
 
         Save(this, modEntry);
     }
@@ -92,25 +95,24 @@ public interface ICloneable<T>
 }
 public class DisplaySettings : ICloneable<DisplaySettings>
 {
-    public string name = "None";
-    public DisplayMode mode = DisplayMode.Disabled;
-    public float scale = 1f;
-    public int nativeWidth;
-    public int nativeHeight;
-    public bool solidBG = false;
-    public string bgColour = "#000000";
+    public string Name = "None";
+    public string DeviceId = "";
+    public DisplayMode Mode = DisplayMode.Disabled;
+    public float Scale = 1f;
+    public bool SolidBg = false;
+    public string BgColour = "#000000";
     public bool AllowWindows = true;
 
     public DisplaySettings Clone()
     {
         return new DisplaySettings
         {
-            name = this.name,
-            mode = this.mode,
-            scale = this.scale,
-            nativeWidth = this.nativeWidth,
-            nativeHeight = this.nativeHeight,
-            bgColour = this.bgColour,
+            Name = this.Name,
+            DeviceId = this.DeviceId,
+            Mode = this.Mode,
+            Scale = this.Scale,
+            SolidBg = this.SolidBg,
+            BgColour = this.BgColour,
             AllowWindows = this.AllowWindows
         };
     }

@@ -49,7 +49,7 @@ public static class WindowUtils
 
         // Get display settings for scaling
         var displaySettings = DisplayUtils.GetDisplaySettings(displayIndex);
-        var scale = displaySettings.scale;
+        var scale = displaySettings.Scale;
 
         //update scaling for new display
         targetWindow.transform.SetLossyScale(scale);
