@@ -2,12 +2,13 @@
 using UnityEngine;
 using UI;
 using UI.Common;
-
+using Logger = Multiscreen.Util.Logger;
+using System;
 
 
 namespace Multiscreen.Patches.Misc;
 
-[HarmonyPatch]
+[HarmonyPatch(typeof(UI.GameInput))]
 public class GameInputPatch
 {
 
@@ -20,8 +21,6 @@ public class GameInputPatch
 
         bool bounds = 0f <= vector.x && 0f <= vector.y && Screen.width >= vector.x && Screen.height >= vector.y;
         Window hit = WindowManager.Shared.HitTest(vector);
-
-        //Multiscreen.Log($"IsMouseOverGameWindow({window?.name}): __result: {__result}\r\n\tBounds:{bounds}\r\n\thit: {hit?.name} :: {hit == window}");
 
         __result = bounds && hit == window;
 

@@ -42,6 +42,9 @@ public static class Multiscreen
             Logger.Log($"Game Version: {Application.version}");
             //File.Delete(LOG_FILE);
 
+            DisplayUtils.LogSystemDisplayConfiguration();
+            DisplayUtils.LogUnityDisplayInfo();
+
             //get user preference
             userPrefFullScr = Screen.fullScreen;
             Logger.Log($"User Preference 'Full screen': {userPrefFullScr}");

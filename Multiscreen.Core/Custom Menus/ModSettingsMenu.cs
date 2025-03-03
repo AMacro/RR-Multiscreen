@@ -142,7 +142,7 @@ public class ModSettingsMenu : MonoBehaviour
                             Multiscreen.settings.focusManager = DisplayUtils.FocusManagerActive;
 
                         // Save new settings
-                        Multiscreen.settings.displays = pendingSettings.Values.ToArray();
+                        Multiscreen.settings.displays = pendingSettings.Values.ToList();
 
                         // Check if main display changed
                         var newMainDisplay = pendingSettings.First(x => x.Value.mode == DisplayMode.Main).Key;
@@ -191,7 +191,7 @@ public class ModSettingsMenu : MonoBehaviour
     private void BuildDisplayPanel(UIPanelBuilder builder)
     {
         // Build our physical layout display
-        var monitors = DisplayUtils.GetNormalisedMonitorLayout(DisplayUtils.GetMonitorLayout());
+        var monitors = DisplayUtils.GetMonitorLayout();
         BuildScreenLayout(builder, monitors);
 
         // Grab settings for current display
@@ -336,8 +336,8 @@ public class ModSettingsMenu : MonoBehaviour
         buttonContainer.offsetMax = new Vector2(-SCREEN_LAYOUT_PADDING, -SCREEN_LAYOUT_PADDING);
 
         //max size of layout
-        int maxX = monitors.Max(m => m.Bounds.Right);
-        int maxY = monitors.Max(m => m.Bounds.Bottom);
+        int maxX = monitors.Max(m => m.NormalisedBounds.Right);
+        int maxY = monitors.Max(m => m.NormalisedBounds.Bottom);
 
         float usableWidth = SCREEN_LAYOUT_WIDTH - (2 * SCREEN_LAYOUT_PADDING);
         float usableHeight = SCREEN_LAYOUT_HEIGHT - (2 * SCREEN_LAYOUT_PADDING);
@@ -349,10 +349,10 @@ public class ModSettingsMenu : MonoBehaviour
 
         foreach (var monitor in monitors)
         {
-            float w = (monitor.Bounds.Right - monitor.Bounds.Left) * scale;
-            float h = (monitor.Bounds.Bottom - monitor.Bounds.Top) * scale;
-            float x = monitor.Bounds.Left * scale;
-            float y = monitor.Bounds.Top * scale;
+            float w = (monitor.NormalisedBounds.Right - monitor.NormalisedBounds.Left) * scale;
+            float h = (monitor.NormalisedBounds.Bottom - monitor.NormalisedBounds.Top) * scale;
+            float x = monitor.NormalisedBounds.Left * scale;
+            float y = monitor.NormalisedBounds.Top * scale;
 
             var buttonObj = new GameObject($"Monitor_{monitor.Name}");
             buttonObj.transform.SetParent(buttonContainer, false);

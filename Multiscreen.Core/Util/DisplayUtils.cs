@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using System.IO;
 using System.Runtime.InteropServices;
 using Game;
+using System.Text;
 
 namespace Multiscreen.Util;
 
@@ -21,9 +22,13 @@ public struct RECT
 
 public class MonitorInfo
 {
-    public RECT Bounds { get; set; }
-    public bool IsPrimary { get; set; }
-    public string Name { get; set; }
+    public string Name { get; set; }            // This is the device name (e.g. \\.\DISPLAY1)
+    public string FriendlyName { get; set; }    // User-friendly display name
+    public string DeviceID { get; set; }        // Hardware identifier from EnumDisplayDevices
+    public ulong Handle { get; set; }          // Handle to the display device (common across Windows and Unity)
+    public bool IsPrimary { get; set; }         // Is system primary monitor
+    public RECT Bounds { get; set; }            // Bounds of the display in screen coordinates, can be negative when arranged left or above the system primary monitor
+    public RECT NormalisedBounds { get; set; }  // Bounds of the display in screen coordinates, normalised so all values are positive
 }
 
 public class ActiveDisplayInfo
@@ -40,8 +45,19 @@ public static class DisplayUtils
     [DllImport("user32.dll")]
     private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumProc lpfnEnum, IntPtr dwData);
 
-    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern bool EnumDisplayDevices(string lpDevice, uint iDevNum, ref DISPLAY_DEVICE lpDisplayDevice, uint dwFlags);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFOEX lpmi);
+
+    [Flags]
+    private enum DisplayDeviceStateFlags
+    {
+        NotAttached = 0x0,
+        AttachedToDesktop = 0x1,
+        PrimaryDevice = 0x4
+    }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
     private struct MONITORINFOEX
@@ -54,6 +70,23 @@ public static class DisplayUtils
         public string DeviceName;
     }
 
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct DISPLAY_DEVICE
+    {
+        [MarshalAs(UnmanagedType.U4)]
+        public int cb;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string DeviceName;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        public string DeviceString;
+        [MarshalAs(UnmanagedType.U4)]
+        public DisplayDeviceStateFlags StateFlags;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        public string DeviceID;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        public string DeviceKey;
+    }
+
     private delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData);
     #endregion
 
@@ -62,6 +95,8 @@ public static class DisplayUtils
     private const string DISPLAY_FOCUS_MANAGER = "DisplayFocusManager";
 
     private static readonly List<ActiveDisplayInfo> ActiveDisplays = [];
+    private static readonly List<MonitorInfo> cachedMonitorInfo = [];
+    private static readonly Dictionary<int, MonitorInfo> unityToWindowsMonitorMap = [];
 
     public static bool FocusManagerActive { get; private set; }
     public static int DisplayCount => ActiveDisplays.Count;
@@ -72,6 +107,13 @@ public static class DisplayUtils
 
     public static void InitialiseDisplays(Settings settings)
     {
+        // Register for display updates
+        Display.onDisplaysUpdated += OnDisplaysUpdated;
+
+        // Build caches and mapping
+        OnDisplaysUpdated();
+
+        // Get Unity's display layout
         List<DisplayInfo> displays = [];
         Screen.GetDisplayLayout(displays);
 
@@ -127,7 +169,6 @@ public static class DisplayUtils
             ActivateDisplay(logicDisplay, displaySetting);
         }
 
-        
         //DrawDisplayLayout();
     }
 
@@ -211,6 +252,51 @@ public static class DisplayUtils
         ActiveDisplays.Add(newDisplay);
 
         Logger.LogInfo($"Display {displayIndex} Activated");
+    }
+
+    private static void FindAndMoveToCorrectDisplay(DisplaySettings targetSettings, List<DisplayInfo> displays)
+    {
+        // Find the Unity display that matches the target device ID
+        for (int i = 0; i < displays.Count; i++)
+        {
+            var monitor = GetWindowsMonitorForUnityDisplay(i);
+            if (monitor != null && monitor.DeviceID == targetSettings.DeviceID)
+            {
+                Logger.LogInfo($"Moving game window to display {i} ({targetSettings.name})");
+                Screen.MoveMainWindowTo(displays[i], new Vector2Int(0, 0));
+                return;
+            }
+        }
+
+        Logger.LogInfo($"Could not find Unity display for target monitor: {targetSettings.name}");
+    }
+
+    private static void RestartApplication()
+    {
+        Logger.LogInfo("Requesting Steam to restart the application to apply display changes");
+
+        try
+        {
+            // Using HeathenEngineering.SteamworksIntegration to restart via Steam
+            //Steamworks.SteamAPI.RestartAppIfNecessary(HeathenEngineering.SteamworksIntegration.API.App.Client.Id);
+            //. .RestartAppIfNecessary(appId)
+            // If we get here, either restart isn't necessary or we need to quit manually
+            Logger.LogInfo("Exiting application for restart");
+            Application.Quit();
+        }
+        catch (System.Exception ex)
+        {
+            Logger.Log($"Failed to restart via Steam: {ex.Message}");
+
+            // Fallback to manual restart
+            string appPath = Application.dataPath.Substring(0, Application.dataPath.LastIndexOf('/'));
+            appPath = appPath.Substring(0, appPath.LastIndexOf('/'));
+            string executablePath = $"{appPath}/{Application.productName}.exe";
+
+            Logger.LogInfo($"Attempting manual restart from: {executablePath}");
+            System.Diagnostics.Process.Start(executablePath);
+            Application.Quit();
+        }
     }
 
     private static Camera CreateDisplayCamera(int displayIndex)
@@ -329,7 +415,7 @@ public static class DisplayUtils
         if (displayIndex < 0 || displayIndex >= ActiveDisplays.Count)
             return null;
 
-        var displayInfo = ActiveDisplays[displayIndex]; 
+        var displayInfo = ActiveDisplays[displayIndex];
         Logger.Log($"GetDisplaySettings({displayIndex}) got displayInfo");
         // Ensure display info exists
         if (displayInfo == null)
@@ -364,6 +450,26 @@ public static class DisplayUtils
         return ActiveDisplays[displayIndex].Settings;
     }
 
+    /// <summary>
+    /// Gets Windows monitor information for a Unity display index
+    /// </summary>
+    /// <param name="unityDisplayIndex">The Unity display index to look up</param>
+    /// <returns>Corresponding Windows monitor info, or null if not found</returns>
+    public static MonitorInfo GetWindowsMonitorForUnityDisplay(int unityDisplayIndex)
+    {
+        // Make sure mapping exists
+        if (unityToWindowsMonitorMap.Count == 0)
+            MapUnityDisplaysToWindowsDisplays();
+
+        if (unityToWindowsMonitorMap.TryGetValue(unityDisplayIndex, out MonitorInfo monitor))
+        {
+            return monitor;
+        }
+
+        return null;
+    }
+
+#if DEBUG
     public static void DrawDisplayLayout()
     {
         // Ensure monitors are enumerated
@@ -456,37 +562,270 @@ public static class DisplayUtils
         RenderTexture.ReleaseTemporary(source);
         RenderTexture.ReleaseTemporary(dest);
     }
+#endif
 
-    public static List<MonitorInfo> GetMonitorLayout()
+    private static void OnDisplaysUpdated()
     {
-        var displays = new List<MonitorInfo>();
-
-        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero,
-            (IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData) =>
-            {
-                MONITORINFOEX mi = new MONITORINFOEX();
-                mi.Size = Marshal.SizeOf(typeof(MONITORINFOEX));
-
-                if (GetMonitorInfo(hMonitor, ref mi))
-                {
-                    var monitorInfo = new MonitorInfo
-                    {
-                        Bounds = mi.Monitor,
-                        IsPrimary = mi.Flags == 1,
-                        Name = mi.DeviceName
-                    };
-                    displays.Add(monitorInfo);
-                }
-                return true;
-            }, IntPtr.Zero);
-
-        return displays;
+        GetMonitorLayout(true);
+        MapUnityDisplaysToWindowsDisplays();
     }
 
-    public static List<MonitorInfo> GetNormalisedMonitorLayout(List<MonitorInfo> monitors)
+    /// <summary>
+    /// Retrieves information about all active monitors in the system.
+    /// </summary>
+    /// <remarks>
+    /// This method enumerates all monitors currently attached to the desktop and collects
+    /// information about each one, including position, size, device identifiers, and
+    /// friendly names. 
+    /// 
+    /// For each monitor, it attempts to get the physical monitor device ID, which can be
+    /// used to uniquely identify monitors across system restarts and display configuration
+    /// changes. If a proper device ID cannot be obtained, a fallback ID is generated based
+    /// on monitor properties.
+    /// </remarks>
+    /// <returns>
+    /// A list of <see cref="MonitorInfo"/> objects
+    /// </returns>
+    public static List<MonitorInfo> GetMonitorLayout(bool refreshCache = false)
     {
-        List <MonitorInfo> result = [];
+        if (refreshCache)
+            cachedMonitorInfo.Clear();
 
+        if (cachedMonitorInfo.Count > 0)
+            return cachedMonitorInfo;
+
+        // Pre-cache all display adapters (essentially, gfx cards)
+        var adapterCache = GetDisplayDevices();
+        // Pre-cache all display monitors (this may be an issue with casting to tablets)
+        var displayMonitors = GetDisplayMonitors();
+
+        foreach (var monitor in displayMonitors) 
+        {
+            // Look up the adapter in our cache
+            if (adapterCache.TryGetValue(monitor.Name, out DISPLAY_DEVICE displayAdapter))
+            {
+                // We found the adapter, now let's get the monitor attached to it
+                if (GetMonitorDeviceInfo(displayAdapter.DeviceName, out DISPLAY_DEVICE monitorDevice))
+                {
+                    monitor.DeviceID = monitorDevice.DeviceID;
+                    monitor.FriendlyName = monitorDevice.DeviceString;
+
+                    Logger.LogDebug($"Monitor: {monitor.Name}, Monitor Device ID: {monitorDevice.DeviceID}, Monitor Name: {monitorDevice.DeviceString}, Monitor Handle: {monitor.Handle}");
+                }
+                else
+                {
+                    //No monitor info returned
+                    monitor.DeviceID = CreateFallbackDeviceID(monitor);
+                    monitor.FriendlyName = $"Unknown Monitor ({monitor.Name})";
+
+                    Logger.Log($"Warning: No monitor info available for monitor {monitor.Name}, using fallback ID: {monitor.DeviceID}");
+                }
+            }
+            else
+            {
+                // We found a monitor but no matching adapter
+                monitor.DeviceID = CreateFallbackDeviceID(monitor);
+
+                Logger.Log($"Warning: No adapter found for monitor {monitor.Name}, using fallback ID: {monitor.DeviceID}");
+            }
+        }
+
+        NormaliseLayout(displayMonitors);
+
+        cachedMonitorInfo.AddRange(displayMonitors);
+
+        return cachedMonitorInfo;
+    }
+
+    public static void LogSystemDisplayConfiguration()
+    {
+        StringBuilder sb = new();
+        sb.AppendLine("\r\n===== SYSTEM DISPLAY CONFIGURATION =====");
+
+        // 1. Log all adapters first using the existing cache method
+        sb.AppendLine("\r\n--- Graphics Adapters ---");
+        var adapters = GetDisplayDevices();
+
+        if (adapters.Count == 0)
+        {
+            sb.AppendLine("No display adapters found");
+        }
+        else
+        {
+            int adapterIndex = 0;
+            foreach (var adapterEntry in adapters)
+            {
+                var adapter = adapterEntry.Value;
+                sb.AppendLine($"{(adapterIndex > 0 ? "\r\n" : "")}Adapter {adapterIndex}: {adapter.DeviceName}");
+                sb.AppendLine($"\tDescription: {adapter.DeviceString}");
+                sb.AppendLine($"\tDeviceID: {adapter.DeviceID}");
+                sb.AppendLine($"\tState: {adapter.StateFlags}");
+
+                // For each adapter, log its monitors
+                int monitorCount = 0;
+                DISPLAY_DEVICE monitor = new() { cb = Marshal.SizeOf(typeof(DISPLAY_DEVICE)) };
+
+                for (uint monitorIndex = 0; EnumDisplayDevices(adapter.DeviceName, monitorIndex, ref monitor, 0); monitorIndex++)
+                {
+                    monitorCount++;
+                    sb.AppendLine($"\tMonitor {monitorIndex}: {monitor.DeviceString}");
+                    sb.AppendLine($"\t\tDeviceID: {monitor.DeviceID}");
+                    // Reset for next monitor
+                    monitor = new() { cb = Marshal.SizeOf(typeof(DISPLAY_DEVICE)) };
+                }
+
+                if (monitorCount == 0)
+                {
+                    sb.AppendLine("\tNo monitors found for this adapter");
+                }
+
+                adapterIndex++;
+            }
+        }
+
+        // 2. Log the actual monitor layout (reuses your GetMonitorLayout)
+        sb.AppendLine("\r\n--- Active Monitor Layout ---");
+        var monitors = GetMonitorLayout();
+
+        if (monitors.Count == 0)
+        {
+            sb.AppendLine("No active monitors found");
+        }
+        else
+        {
+            for (int i = 0; i < monitors.Count; i++)
+            {
+                var monitor = monitors[i];
+                int width = monitor.Bounds.Right - monitor.Bounds.Left;
+                int height = monitor.Bounds.Bottom - monitor.Bounds.Top;
+
+                sb.AppendLine($"{(i > 0 ? "\r\n" : "")}Monitor: {monitor.Name}");
+                sb.AppendLine($"\tDevice: {monitor.FriendlyName}");
+                sb.AppendLine($"\tDeviceID: {monitor.DeviceID}");
+                sb.AppendLine($"\tHandle: {monitor.Handle}");
+                sb.AppendLine($"\tPosition: ({monitor.Bounds.Left}, {monitor.Bounds.Top})");
+                sb.AppendLine($"\tResolution: {width} x {height}");
+                sb.AppendLine($"\tPrimary: {(monitor.IsPrimary ? "Yes" : "No")}");
+            }
+        }
+
+        sb.AppendLine("========================================");
+        Logger.Log(sb.ToString());
+    }
+
+    public static void LogUnityDisplayInfo()
+    {
+        List<DisplayInfo> displays = new List<DisplayInfo>();
+        Screen.GetDisplayLayout(displays);
+
+        StringBuilder sb = new StringBuilder();
+        sb.AppendLine("\r\n===== UNITY DISPLAY INFORMATION =====");
+
+        if (displays.Count == 0)
+        {
+            sb.AppendLine("No displays found!");
+        }
+        else
+        {
+            for (int i = 0; i < displays.Count; i++)
+            {
+                var display = displays[i];
+
+                sb.AppendLine($"\r\nDisplay {i}: {display.name}");
+                sb.AppendLine($"\tHandle: {display.handle}");
+                sb.AppendLine($"\tResolution: {display.width} x {display.height}");
+                sb.AppendLine($"\tRefresh Rate: {display.refreshRate.value} Hz"); // Convert from thousandths to Hz
+                sb.AppendLine($"\tWork Area:");
+                sb.AppendLine($"\t\tPosition: ({display.workArea.x}, {display.workArea.y})");
+                sb.AppendLine($"\t\tSize: {display.workArea.width} x {display.workArea.height}");
+
+                // Additional information from Unity's Screen class
+                if (i < Display.displays.Length)
+                {
+                    var unityDisplay = Display.displays[i];
+                    sb.AppendLine($"\tSystem Resolution: {unityDisplay.systemWidth} x {unityDisplay.systemHeight}");
+                    sb.AppendLine($"\tRenderingWidth/Height: {unityDisplay.renderingWidth} x {unityDisplay.renderingHeight}");
+                    sb.AppendLine($"\tActive: {unityDisplay.active}");
+                }
+
+                // Display index information
+                if (i == 0)
+                {
+                    sb.AppendLine($"\tMain Display: Yes");
+                }
+                else
+                {
+                    sb.AppendLine($"\tMain Display: No");
+                }
+            }
+        }
+
+        sb.AppendLine("\r\n--- Additional Screen Information ---");
+        sb.AppendLine($"Current Resolution: {Screen.currentResolution.width} x {Screen.currentResolution.height} @ {Screen.currentResolution.refreshRate} Hz");
+        sb.AppendLine($"Full Screen: {Screen.fullScreen}");
+        sb.AppendLine($"Full Screen Mode: {Screen.fullScreenMode}");
+        sb.AppendLine($"System Resolution: {Screen.width} x {Screen.height}");
+
+        sb.AppendLine("========================================");
+
+        Logger.Log(sb.ToString());
+    }
+
+    /// <summary>
+    /// Maps Unity display indices to Windows monitor information using handles
+    /// </summary>
+    private static void MapUnityDisplaysToWindowsDisplays()
+    {
+        unityToWindowsMonitorMap.Clear();
+
+        var windowsMonitors = GetMonitorLayout().ToArray();
+
+        // Get Unity displays
+        List<DisplayInfo> unityDisplays = [];
+        Screen.GetDisplayLayout(unityDisplays);
+
+        Logger.LogDebug($"Mapping {unityDisplays.Count} Unity displays to {windowsMonitors.Count()} Windows monitors");
+
+        for (int unityIndex = 0; unityIndex < unityDisplays.Count; unityIndex++)
+        {
+            var unityDisplay = unityDisplays[unityIndex];
+
+            int monitorIndex = 0;
+            bool found = false;
+            while (monitorIndex < windowsMonitors.Length)
+            {
+                if (unityDisplay.handle == windowsMonitors[monitorIndex].Handle)
+                {
+                    found = true;
+                    break;
+                }
+                monitorIndex++;
+            }
+
+            if (found)
+            {
+                var monitor = windowsMonitors[monitorIndex];
+                unityToWindowsMonitorMap[unityIndex] = monitor;
+
+                Logger.LogDebug($"Mapped Unity display {unityIndex} ({unityDisplay.name}) to Windows monitor: {monitor.Name}, {monitor.FriendlyName}");
+            }
+            else
+            {
+                Logger.Log($"Warning: Could not find Windows monitor with handle {unityDisplay.handle} for Unity display {unityDisplay.name} - {unityDisplay.width}x{unityDisplay.height} {unityIndex}");
+            }
+        }
+    }
+
+    private static string CreateFallbackDeviceID(MonitorInfo monitor)
+    {
+        int width = monitor.Bounds.Right - monitor.Bounds.Left;
+        int height = monitor.Bounds.Bottom - monitor.Bounds.Top;
+        return $"FALLBACK_{monitor.Name}_{width}x{height}_{monitor.IsPrimary}";
+    }
+
+    // Calculate nomalised monitor bounds
+    private static void NormaliseLayout(List<MonitorInfo> monitors)
+    {
         // Find the leftmost and topmost coordinates
         int minX = monitors.Min(m => m.Bounds.Left);
         int minY = monitors.Min(m => m.Bounds.Top);
@@ -494,22 +833,80 @@ public static class DisplayUtils
         // Shift all monitors so the leftmost and topmost points are at (0,0)
         foreach (var monitor in monitors)
         {
-            var normalizedMonitor = new MonitorInfo
+            monitor.NormalisedBounds = new RECT
             {
-                Name = monitor.Name,
-                IsPrimary = monitor.IsPrimary,
-                Bounds = new RECT
-                {
-                    Left = monitor.Bounds.Left - minX,
-                    Right = monitor.Bounds.Right - minX,
-                    Top = monitor.Bounds.Top - minY,
-                    Bottom = monitor.Bounds.Bottom - minY
-                }
+                Left = monitor.Bounds.Left - minX,
+                Right = monitor.Bounds.Right - minX,
+                Top = monitor.Bounds.Top - minY,
+                Bottom = monitor.Bounds.Bottom - minY
             };
+        }
+    }
 
-            result.Add(normalizedMonitor);
+    // Enumerate all system display devices (graphics cards)
+    private static Dictionary<string, DISPLAY_DEVICE> GetDisplayDevices()
+    {
+        var adapterCache = new Dictionary<string, DISPLAY_DEVICE>(StringComparer.OrdinalIgnoreCase);
+
+        DISPLAY_DEVICE adapter = new() { cb = Marshal.SizeOf(typeof(DISPLAY_DEVICE)) };
+
+        for (uint i = 0; EnumDisplayDevices(null, i, ref adapter, 0); i++)
+        {
+            // Store in cache using DeviceName as key
+            adapterCache[adapter.DeviceName] = adapter;
+
+            // Reset for next adapter
+            adapter = new () { cb = Marshal.SizeOf(typeof(DISPLAY_DEVICE)) };
         }
 
-        return result;
+        return adapterCache;
+    }
+
+    // Enumerate all system display monitors
+    private static List<MonitorInfo> GetDisplayMonitors()
+    {
+        List<MonitorInfo> displayCache = [];
+
+        // Enumerate all monitors
+        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero,
+            // delegate called for each monitor
+            (IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData) =>
+            {
+                MONITORINFOEX mi = new() { Size = Marshal.SizeOf(typeof(MONITORINFOEX)) };
+
+                if (GetMonitorInfo(hMonitor, ref mi))
+                {
+                    var monitorInfo = new MonitorInfo
+                    {
+                        Name = mi.DeviceName,
+                        Handle = (ulong)hMonitor,
+                        IsPrimary = mi.Flags == 1,
+                        Bounds = mi.Monitor,
+                    };
+
+                    displayCache.Add(monitorInfo);
+                }
+
+                return true;
+            }, IntPtr.Zero);
+
+        return displayCache;
+    }
+
+
+    //Gets monitor specific information
+    private static bool GetMonitorDeviceInfo(string adapterName, out DISPLAY_DEVICE monitorDevice)
+    {
+        monitorDevice = new DISPLAY_DEVICE();
+        monitorDevice.cb = Marshal.SizeOf(monitorDevice);
+
+        // Get the monitor attached to this adapter (iDevNum = 0 for the first/primary monitor)
+        if (EnumDisplayDevices(adapterName, 0, ref monitorDevice, 0))
+        {
+            // We got a monitor!
+            return true;
+        }
+
+        return false;
     }
 }
