@@ -254,49 +254,90 @@ public static class DisplayUtils
         Logger.LogInfo($"Display {displayIndex} Activated");
     }
 
-    private static void FindAndMoveToCorrectDisplay(DisplaySettings targetSettings, List<DisplayInfo> displays)
+    private static void MoveAndRestartApplication(DisplaySettings targetSettings, List<DisplayInfo> displays)
     {
         // Find the Unity display that matches the target device ID
+        int targetDisplayIndex = -1;
         for (int i = 0; i < displays.Count; i++)
         {
             var monitor = GetWindowsMonitorForUnityDisplay(i);
-            if (monitor != null && monitor.DeviceID == targetSettings.DeviceId)
+            if (monitor != null && string.Equals(monitor.DeviceID, targetSettings.DeviceId, StringComparison.OrdinalIgnoreCase))
             {
-                Logger.LogInfo($"Moving game window to display {i} ({targetSettings.Name})");
-                Screen.MoveMainWindowTo(displays[i], new Vector2Int(0, 0));
-                return;
+                targetDisplayIndex = i;
+                break;
             }
         }
 
-        Logger.LogInfo($"Could not find Unity display for target monitor: {targetSettings.Name}");
+        if (targetDisplayIndex >= 0)
+        {
+            // Create a coroutine handler object that survives scene changes
+            var coroutineObj = new GameObject("DisplayMoveHandler");
+            GameObject.DontDestroyOnLoad(coroutineObj);
+            var runner = coroutineObj.AddComponent<CoroutineRunner>();
+
+            // Start the move coroutine
+            runner.StartCoroutine(MoveDisplayAndRestart(displays[targetDisplayIndex], coroutineObj));
+        }
+        else
+        {
+            Logger.Log($"Warning: Could not find Unity display for target display {targetSettings.Name}");
+        }
+    }
+
+    private static IEnumerator MoveDisplayAndRestart(DisplayInfo targetDisplay, GameObject coroutineObj)
+    {
+        Logger.LogInfo($"Moving game window to display: {targetDisplay.name} ({targetDisplay.width}x{targetDisplay.height})");
+
+        //Switch to windowed mode (can't move windows in fullscreen)
+        FullScreenMode originalMode = Screen.fullScreenMode;
+
+        Logger.LogInfo("Switching to windowed mode");
+        Screen.fullScreenMode = FullScreenMode.Windowed;
+
+        // Wait 1 frame to ensure mode change is applied
+        yield return null;
+
+        // Change resolution to match the target display
+        Logger.LogInfo($"Setting resolution to {targetDisplay.width}x{targetDisplay.height}");
+        Screen.SetResolution(targetDisplay.width, targetDisplay.height, false);
+
+        // Wait 1 frame to ensure mode change is applied
+        yield return null;
+
+        // Move the window
+        Logger.LogInfo("Moving window");
+        AsyncOperation moveOperation = Screen.MoveMainWindowTo(in targetDisplay, new Vector2Int(0, 0));
+
+        // Wait for the move to complete
+        while (!moveOperation.isDone)
+        {
+            yield return null;
+        }
+
+        Logger.LogInfo($"Returning to fullscreen mode: {originalMode}");
+        Screen.fullScreenMode = originalMode;
+
+        // Wait 1 frame to ensure mode change is applied
+        yield return null;
+
+        Logger.LogInfo("Display move complete, preparing to restart");
+        yield return new WaitForSeconds(1.0f);
+
+        GameObject.Destroy(coroutineObj);
+
+        RestartApplication();
     }
 
     private static void RestartApplication()
     {
-        Logger.LogInfo("Requesting Steam to restart the application to apply display changes");
+        Logger.LogInfo("Requesting restart via Steam");
 
-        try
-        {
-            // Using HeathenEngineering.SteamworksIntegration to restart via Steam
-            //Steamworks.SteamAPI.RestartAppIfNecessary(HeathenEngineering.SteamworksIntegration.API.App.Client.Id);
-            //. .RestartAppIfNecessary(appId)
-            // If we get here, either restart isn't necessary or we need to quit manually
-            Logger.LogInfo("Exiting application for restart");
-            Application.Quit();
-        }
-        catch (System.Exception ex)
-        {
-            Logger.Log($"Failed to restart via Steam: {ex.Message}");
+        // Launch the game via Steam protocol URI
+        string steamProtocolUri = "steam://rungameid/1683150";
 
-            // Fallback to manual restart
-            string appPath = Application.dataPath.Substring(0, Application.dataPath.LastIndexOf('/'));
-            appPath = appPath.Substring(0, appPath.LastIndexOf('/'));
-            string executablePath = $"{appPath}/{Application.productName}.exe";
-
-            Logger.LogInfo($"Attempting manual restart from: {executablePath}");
-            System.Diagnostics.Process.Start(executablePath);
-            Application.Quit();
-        }
+        System.Diagnostics.Process.Start(steamProtocolUri);
+        Logger.LogInfo("Exiting application for restart");
+        Application.Quit();
     }
 
     private static Camera CreateDisplayCamera(int displayIndex)
@@ -566,6 +607,7 @@ public static class DisplayUtils
 
     private static void OnDisplaysUpdated()
     {
+        Logger.LogInfo("DisplaysUpdated");
         GetMonitorLayout(true);
         MapUnityDisplaysToWindowsDisplays();
     }
