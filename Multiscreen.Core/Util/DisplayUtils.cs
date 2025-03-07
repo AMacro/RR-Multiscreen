@@ -117,56 +117,118 @@ public static class DisplayUtils
         List<DisplayInfo> displays = [];
         Screen.GetDisplayLayout(displays);
 
-        int mainDisplayIndex = 0;
-
-        //default case if no settings/bad settings
-        var defaultDisplaySettings = new DisplaySettings
-        {
-            mode = DisplayMode.Main,
-            scale = 1f
-        };
+        // Get System display layout
+        var monitors = GetMonitorLayout();
 
         // No settings - register main game on current display
-        if (settings.displays == null || settings.displays.Length == 0)
-        {
-            int currentDisplay = displays.FindIndex(d => d.Equals(Screen.mainWindowDisplayInfo));
-            Logger.LogInfo($"No settings found. Initializing with current display {currentDisplay} as main");
+        settings.displays ??= [];
 
-            settings.displays = new DisplaySettings[displays.Count];
-            for (int i = 0; i < displays.Count; i++)
+        // Find the current display and monitor
+        int currentDisplayIndex = displays.FindIndex(d => d.Equals(Screen.mainWindowDisplayInfo));
+        var currentMonitor = GetWindowsMonitorForUnityDisplay(currentDisplayIndex);
+        Logger.LogInfo($"Current Unity display: {currentDisplayIndex}, Monitor: {currentMonitor?.FriendlyName ?? "Unknown"}");
+
+        // Find all settings for main display that are currently connected
+        var connectedMainDisplaySettings = settings.displays
+            .Where(d => d.Mode == DisplayMode.Main)
+            .Where(d => cachedMonitorInfo.Any(m => string.Equals(d.DeviceId, m.DeviceID, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+        DisplaySettings mainDisplaySettings;
+
+        if (connectedMainDisplaySettings.Count == 0)
+        {
+            // No settings for main display match a currently connected monitor
+            // Create new display settings for the current display, continue with main display initialisation
+            mainDisplaySettings = new DisplaySettings
             {
-                settings.displays[i] = new DisplaySettings
-                {
-                    mode = (i == currentDisplay) ? DisplayMode.Main : DisplayMode.Disabled,
-                    AllowWindows = (i == currentDisplay)
-                };
+                Name = displays[currentDisplayIndex].name,
+                DeviceId = currentMonitor.DeviceID,
+                Mode = DisplayMode.Main,
+                Scale = Preferences.GraphicsCanvasScale,
+                AllowWindows = true
+            };
+
+            settings.displays.Add(mainDisplaySettings);
+
+        }
+        else if (connectedMainDisplaySettings.Count == 1)
+        {
+            // Exactly one main display setting
+            mainDisplaySettings = connectedMainDisplaySettings.First();
+
+            // Check if current display matches the main display in settings
+            bool isCurrentDisplayTheMainOne = string.Equals(
+                currentMonitor?.DeviceID,
+                mainDisplaySettings.DeviceId,
+                StringComparison.OrdinalIgnoreCase);
+
+            if (!isCurrentDisplayTheMainOne)
+            {
+                // Current display is different from main in settings - move and restart
+                Logger.LogInfo($"Current display doesn't match main display in settings. Moving to {mainDisplaySettings.Name}");
+                MoveAndRestartApplication(mainDisplaySettings, displays);
+                return;
             }
-            InitialiseMain(settings.displays[currentDisplay], currentDisplay);
-            return;
+
+            // 2aii. Current display is already the main one - proceed
+            Logger.LogInfo($"Current display matches main display in settings: {mainDisplaySettings.Name}");
+        }
+        else 
+        {
+            // 2b. Multiple main display settings - check if current is one of them
+            var settingForCurrentDisplay = connectedMainDisplaySettings.FirstOrDefault(
+                d => string.Equals(d.DeviceId, currentMonitor?.DeviceID, StringComparison.OrdinalIgnoreCase));
+
+            if (settingForCurrentDisplay != null)
+            {
+                // Current display is one of the main displays in settings - use it
+                mainDisplaySettings = settingForCurrentDisplay;
+                Logger.LogInfo($"Multiple main displays in settings. Current display is one of them - using it: {mainDisplaySettings.Name}");
+
+                // Set other main displays to Secondary
+                foreach (var otherMain in connectedMainDisplaySettings.Where(d => d != mainDisplaySettings))
+                {
+                    otherMain.Mode = DisplayMode.Secondary;
+                    Logger.LogInfo($"Changed '{otherMain.Name}' from Main to Secondary mode");
+                }
+            }
+            else
+            {
+                // Current display is not in the main displays - move to first one
+                mainDisplaySettings = connectedMainDisplaySettings[0];
+                Logger.LogInfo($"Current display is not among main displays in settings. Moving to: {mainDisplaySettings.Name}");
+                MoveAndRestartApplication(mainDisplaySettings, displays);
+                return; // Early return since we're restarting
+            }
         }
 
-        // Find DisplayMode.Main in settings
-        var mainDisplaySettings = settings.displays.FirstOrDefault(d => d.mode == DisplayMode.Main);
-        if (mainDisplaySettings == null)
-        {
-            //todo: handle this better - which screen are we on? overwrite just this entry?
-            Logger.LogInfo("Initialising displays, no main display found, clearing settings");
-            settings.displays = [defaultDisplaySettings];
-            InitialiseMain(defaultDisplaySettings);
-            return;
-        };
+        //// Set other connected main displays to Secondary mode
+        //foreach (var otherMain in connectedMainDisplaySettings.Where(d => d != mainDisplaySettings))
+        //{
+        //    otherMain.Mode = DisplayMode.Secondary;
+        //    Logger.LogInfo($"Changed '{otherMain.Name}' from Main to Secondary mode");
+        //}
 
-        //find the index of the main display in the settings, this will be container 0
-        mainDisplayIndex = Array.IndexOf(settings.displays, mainDisplaySettings);
-        InitialiseMain(mainDisplaySettings, mainDisplayIndex);
+        InitialiseMain(mainDisplaySettings, currentDisplayIndex);
+
+        // Find all settings for other displays that are currently connected
+        var connectedOtherDisplaySettings = 
+            settings.displays
+                .Where(d => d.Mode != DisplayMode.Disabled && d.Mode != DisplayMode.Main)
+                .Where(d => cachedMonitorInfo.Any(m => string.Equals(d.DeviceId, m.DeviceID, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
 
         // Activate additional displays from settings
-        foreach (var displaySetting in settings.displays.Where(d =>
-            d.Mode != DisplayMode.Disabled &&
-            d.Mode != DisplayMode.Main))
+        foreach (var displaySetting in connectedOtherDisplaySettings)
         {
             var logicDisplay = settings.displays.IndexOf(displaySetting);
-            ActivateDisplay(logicDisplay, displaySetting);
+
+            // display 0 is reserved and must be either the main display or not used
+            if (logicDisplay > 0)
+                ActivateDisplay(logicDisplay, displaySetting);
+            else
+                Logger.LogInfo($"Secondary screen nominated on primary display, skipping!");
         }
 
         //DrawDisplayLayout();
@@ -219,24 +281,19 @@ public static class DisplayUtils
     {
         Logger.LogInfo($"Display {displayIndex} Activating...");
 
-        var systemDisplay = Display.displays[displayIndex];
-
-        // Create display info
+        // Create active display info
         var newDisplay = new ActiveDisplayInfo
         {
-            //LogicalIndex = displayIndex,
-            //Resolution = new Vector2Int(systemDisplay.systemWidth, systemDisplay.systemHeight),
-            //IsActive = true
             Settings = settings,
         };
 
-
-        Logger.LogDebug($"Display {displayIndex}: {systemDisplay.systemWidth}x{systemDisplay.systemHeight}");
+        var targetDisplay = Display.displays[displayIndex];
+        Logger.LogDebug($"Display {displayIndex}: {targetDisplay.systemWidth}x{targetDisplay.systemHeight}");
 
         Screen.fullScreen = true;
-        systemDisplay.Activate();
-        systemDisplay.SetRenderingResolution(systemDisplay.systemWidth, systemDisplay.systemHeight);
-        systemDisplay.SetParams(systemDisplay.systemWidth, systemDisplay.systemHeight, 0, 0);
+        targetDisplay.Activate();
+        targetDisplay.SetRenderingResolution(targetDisplay.systemWidth, targetDisplay.systemHeight);
+        targetDisplay.SetParams(targetDisplay.systemWidth, targetDisplay.systemHeight, 0, 0);
 
         //Create a new camera for the display
         var camera = CreateDisplayCamera(displayIndex);
