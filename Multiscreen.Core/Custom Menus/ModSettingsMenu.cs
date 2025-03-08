@@ -1,6 +1,4 @@
-﻿using Analytics;
-using Helpers;
-using TMPro;
+﻿using TMPro;
 using UI;
 using UI.Builder;
 using UI.CompanyWindow;
@@ -10,7 +8,6 @@ using UnityEngine.UI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
 using Multiscreen.Patches.Menus;
 using Multiscreen.Util;
 using static Multiscreen.Util.DisplayUtils;
@@ -24,12 +21,13 @@ public class ModSettingsMenu : MonoBehaviour
     const int SCREEN_LAYOUT_WIDTH = 460;
     const int SCREEN_LAYOUT_HEIGHT = 200;
     const int SCREEN_LAYOUT_PADDING = 10;
-    private static readonly string[] DISPLAY_MODES = ["Disabled", "Main Game", "Extra Windows", "Full Screen Map", "CTC"];
+    private static readonly string[] DISPLAY_MODES = ["Disabled", "Main Game", "Extra Windows"];// not yet ready, "Full Screen Map", "CTC"];
     #endregion
 
     #region Fields
     private GameObject contentPanel;
     private UIBuilderAssets assets;
+    private UIPanelBuilder buttonsBuilder;
     private static readonly UIState<string> SelectedTab = new("disp");
 
     private readonly List<DisplayInfo> displays = [];
@@ -101,7 +99,6 @@ public class ModSettingsMenu : MonoBehaviour
             Logger.LogTrace("PanelCreate");
 
             builder.AddTabbedPanels(SelectedTab, BuildTabs);
-            BuildFocusManagementSection(builder);
             BuildButtonSection(builder);
         });
     }
@@ -140,6 +137,7 @@ public class ModSettingsMenu : MonoBehaviour
         BuildWindowsAllowedToggle(builder, currentSettings);
 
         builder.AddExpandingVerticalSpacer();
+        BuildFocusManagementSection(builder);
     }
 
     #region Screen Layout Graphic
@@ -257,7 +255,11 @@ public class ModSettingsMenu : MonoBehaviour
 
     private void BuildModeSelector(UIPanelBuilder builder, DisplaySettings currentSettings)
     {
-        builder.AddField("Display Mode",
+        // Get available display modes for the current display
+        List<int> availableModes = GetAvailableModesForDisplay(selectedDisplay);
+        TMP_Dropdown dropdown;
+
+        var dropdownRect =
             builder.AddDropdownIntPicker(
                 displayModeValues,
                 (int)currentSettings.Mode,
@@ -265,12 +267,51 @@ public class ModSettingsMenu : MonoBehaviour
                 canWrite: true,
                 delegate (int i)
                 {
-                    Logger.LogDebug($"Selected Mode: {i}, {displayModes[i]}");
-                    UpdateDisplayMode(selectedDisplay, (DisplayMode)i);
-                    builder.Rebuild();
+                    bool allowed = availableModes.Contains(i);
+                    Logger.LogDebug($"Selected Mode: {i} \'{displayModes[i]}\', mode allowed: {allowed}");
+
+                    // Only allow selecting available modes
+                    if (allowed)
+                    {
+                        UpdateDisplayMode(selectedDisplay, (DisplayMode)i);
+                        builder.Rebuild();
+                        buttonsBuilder.Rebuild();
+                    }
                 }
-            )
-        );
+            );
+
+        builder.AddField("Display Mode", dropdownRect);
+
+        dropdown = dropdownRect.GetComponent<TMP_Dropdown>();
+
+
+        if (dropdown != null)
+        {
+            // Apply visual indication for disabled options
+            for (int i = 0; i < dropdown.options.Count; i++)
+            {
+                // If this mode isn't available for this display, mark it as disabled
+                if (!availableModes.Contains(i))
+                {
+                    var option = dropdown.options[i];
+                    option.text = $"<color=#888888>{option.text}</color>";
+                    dropdown.options[i] = option;
+                }
+            }
+
+            // Force refresh the dropdown
+            dropdown.RefreshShownValue();
+
+            // Add a custom handler to prevent selecting disabled options
+            dropdown.onValueChanged.AddListener(value => {
+                if (!availableModes.Contains(value))
+                {
+                    // Reset to current value if user tries to select a disabled option
+                    dropdown.value = (int)currentSettings.Mode;
+                    dropdown.RefreshShownValue();
+                }
+            });
+        }
     }
 
     private void BuildScaleSlider(UIPanelBuilder builder, DisplaySettings currentSettings, ActiveDisplayInfo dispInfo)
@@ -292,13 +333,13 @@ public class ModSettingsMenu : MonoBehaviour
 
     private void BuildBackgroundSettings(UIPanelBuilder builder, DisplaySettings currentSettings, ActiveDisplayInfo dispInfo)
     {
+        builder.AddExpandingVerticalSpacer();
+
         builder.AddField("Solid Background",
             builder.HStack(delegate (UIPanelBuilder builder)
             {
                 // This setting can only be changed when the display is secondary
                 var enabled = currentSettings.Mode == DisplayMode.Secondary;
-
-                builder.Spacer(2f);
 
                 var toggle = builder.AddToggle(
                     () => dispInfo?.Background != null ? dispInfo.Background.enabled : currentSettings.SolidBg,
@@ -364,6 +405,8 @@ public class ModSettingsMenu : MonoBehaviour
     {
         builder.HStack(delegate (UIPanelBuilder builder)
         {
+            buttonsBuilder = builder;
+
             builder.AddButton("Back", delegate
             {
                 RestoreOriginalSettings();
@@ -372,12 +415,23 @@ public class ModSettingsMenu : MonoBehaviour
 
             builder.Spacer().FlexibleWidth(1f);
 
+            bool settingsValid = ValidateSettings(out string errorMessage);
+
+            Logger.Log($"Test Validation: {settingsValid}, {errorMessage}");
+
+            if (!settingsValid)
+            {
+                builder.AddLabel($"<alpha=#66><i>{errorMessage}</i>");
+
+                builder.Spacer().FlexibleWidth(1f);
+            }
+
             builder.AddButton("Apply", delegate
             {
                 SaveSettings();
                 HandleDisplayChanges();
                 MenuManagerPatch._MMinstance.navigationController.Pop();
-            });
+            }).Disable(!settingsValid);
         });
     }
 
@@ -420,7 +474,7 @@ public class ModSettingsMenu : MonoBehaviour
             var previousMain = pendingSettings.FirstOrDefault(x => x.Value.Mode == DisplayMode.Main);
             if (previousMain.Value != null)
             {
-                previousMain.Value.Mode = DisplayMode.Secondary;
+                previousMain.Value.Mode = DisplayMode.Disabled;
             }
         }
 
@@ -584,6 +638,47 @@ public class ModSettingsMenu : MonoBehaviour
                 }
             }
         }
+    }
+
+    private List<int> GetAvailableModesForDisplay(int displayIndex)
+    {
+        List<int> availableModes = [];
+
+        // Display 0 can only be Disabled or Main
+        if (displayIndex == 0)
+        {
+            availableModes.Add((int)DisplayMode.Disabled);
+            availableModes.Add((int)DisplayMode.Main);
+        }
+        // Display 1+ can be any mode
+        else
+        {
+            // All modes are available for secondary displays
+            availableModes.AddRange(displayModeValues);
+        }
+
+        return availableModes;
+    }
+
+    private bool ValidateSettings(out string errorMessage)
+    {
+        errorMessage = string.Empty;
+
+        // Count displays set to Main mode
+        int mainDisplayCount = pendingSettings.Count(x => x.Value.Mode == DisplayMode.Main);
+
+        if (mainDisplayCount == 0)
+        {
+            errorMessage = "No 'Main Game' display set";
+            return false;
+        }
+        else if (mainDisplayCount > 1)
+        {
+            errorMessage = "Only one display can be 'Main Game'";
+            return false;
+        }
+
+        return true;
     }
     #endregion
 }
