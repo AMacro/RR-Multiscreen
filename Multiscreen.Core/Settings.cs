@@ -95,13 +95,27 @@ public interface ICloneable<T>
 }
 public class DisplaySettings : ICloneable<DisplaySettings>
 {
+    private string bgColour = "#000000";
+
     public string Name = "None";
     public string DeviceId = "";
     public DisplayMode Mode = DisplayMode.Disabled;
     public float Scale = 1f;
-    public bool SolidBg = false;
-    public string BgColour = "#000000";
     public bool AllowWindows = true;
+
+    public bool SolidBg = false;
+    public string BgColour
+    {
+        get
+        {
+            return bgColour.StartsWith("#") ? bgColour : "#" + bgColour;
+        }
+        set
+        {
+            bgColour = value?.TrimStart('#') ?? "000000";
+        }
+    }
+
 
     public DisplaySettings Clone()
     {
@@ -115,6 +129,11 @@ public class DisplaySettings : ICloneable<DisplaySettings>
             BgColour = this.BgColour,
             AllowWindows = this.AllowWindows
         };
+    }
+
+    public override string ToString()
+    {
+        return $"{{Name: {Name} DeviceId: {DeviceId} Mode: {Mode} Scale: {Scale} SolidBg: {SolidBg} BgColour: {BgColour} AllowWindows: {AllowWindows}}}";
     }
 }
 
