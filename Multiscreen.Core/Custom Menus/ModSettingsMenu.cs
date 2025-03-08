@@ -111,16 +111,18 @@ public class ModSettingsMenu : MonoBehaviour
                         for (int i = 0; i < displays.Count; i++)
                         {
                             var originalSettings = DisplayUtils.GetDisplaySettings(i, true);
+                            if (originalSettings == null)
+                                continue;
+
                             var dispInfo = DisplayUtils.GetDisplayInfoFromIndex(i);
+                            if (dispInfo == null)
+                                continue;
 
                             if (dispInfo.Background != null)
                             {
                                 dispInfo.Background.enabled = originalSettings.SolidBg;
 
-                                var colourString = originalSettings.BgColour.StartsWith("#") ?
-                                                  originalSettings.BgColour : "#" + originalSettings.BgColour;
-
-                                if (ColorUtility.TryParseHtmlString(colourString, out Color col))
+                                if (ColorUtility.TryParseHtmlString(originalSettings.BgColour, out Color col))
                                     dispInfo.Background.color = col;
                                 else
                                     Logger.LogInfo($"Failed to parse colour {originalSettings.BgColour}");
@@ -143,37 +145,75 @@ public class ModSettingsMenu : MonoBehaviour
 
                         // Save new settings
                         Multiscreen.settings.displays = pendingSettings.Values.ToList();
+                        Multiscreen.settings.Save(Multiscreen.ModEntry);
 
                         // Check if main display changed
-                        var newMainDisplay = pendingSettings.First(x => x.Value.Mode == DisplayMode.Main).Key;
-                        var newActiveDisplays = pendingSettings.Where(x => x.Value.Mode != DisplayMode.Disabled).Select(x => x.Key).ToHashSet();
+                        var mainDisplayEntry = pendingSettings.First(x => x.Value.Mode == DisplayMode.Main);
+                        int newMainDisplay = mainDisplayEntry.Key;
+                        DisplaySettings newMainDisplaySettings = mainDisplayEntry.Value;
 
-                        bool requiresRestart = false;
+                        var newActiveDisplayIndices = pendingSettings.Where(x => x.Value.Mode != DisplayMode.Disabled).Select(x => x.Key);
+                        var newActiveDisplays = pendingSettings.Where(x => x.Value.Mode != DisplayMode.Disabled);
 
                         // Check if any previously active displays are being disabled
-                        if (originalActiveDisplays.Any(d => !newActiveDisplays.Contains(d)) ||
-                            newActiveDisplays.Any(d => !originalActiveDisplays.Contains(d)))
-                        {
-                            requiresRestart = true;
-                        }
+                        bool requiresRestart = originalActiveDisplays.Any(d => !newActiveDisplayIndices.Contains(d));// || newActiveDisplays.Any(d => !originalActiveDisplays.Contains(d));
 
                         // Check if main display changed
                         if (newMainDisplay != originalMainDisplay)
                         {
-                            requiresRestart = true;
-                            Logger.LogInfo($"Moving main window from display {originalMainDisplay} to {newMainDisplay}");
-                            Logger.LogInfo($"Target display: {displays[newMainDisplay].name} at {displays[newMainDisplay].width}x{displays[newMainDisplay].height}");
-
-                            Screen.MoveMainWindowTo(displays[1], Vector2Int.zero);
-                            Screen.fullScreen = true;
-
-                            Logger.LogInfo($"New position: {Screen.mainWindowDisplayInfo.name}");
+                            DisplayUtils.MoveAndRestartApplication(newMainDisplaySettings, displays);
+                        }
+   
+                        if (requiresRestart)
+                        {
+                            DisplayUtils.RestartApplication();
+                            return;
                         }
 
-                        Multiscreen.settings.Save(Multiscreen.ModEntry);
+                        // Activate any new displays
+                        foreach (var entry in newActiveDisplays)
+                        {
+                            int displayIndex = entry.Key;
+                            var settings = entry.Value;
 
-                        if (requiresRestart)
-                            ShowRestart();
+                            // Skip main display or disabled displays
+                            if (displayIndex == 0 || settings.Mode == DisplayMode.Disabled)
+                                continue;
+
+                            // Is this a new active display?
+                            bool isNewDisplay = !originalActiveDisplays.Contains(displayIndex);
+
+                            if (isNewDisplay)
+                            {
+                                Logger.LogInfo($"Activating new display {displayIndex} with mode {settings.Mode}");
+                                DisplayUtils.ActivateDisplay(displayIndex, settings);
+                            }
+                            else
+                            {
+                                // Update existing display settings
+                                var displayInfo = DisplayUtils.GetDisplayInfoFromIndex(displayIndex);
+                                if (displayInfo != null)
+                                {
+                                    // Update background settings if available
+                                    if (displayInfo.Background != null)
+                                    {
+                                        displayInfo.Background.enabled = settings.SolidBg;
+
+                                        if (!string.IsNullOrEmpty(settings.BgColour) &&
+                                            ColorUtility.TryParseHtmlString(settings.BgColour, out Color col))
+                                        {
+                                            displayInfo.Background.color = col;
+                                        }
+                                    }
+
+                                    // Update scale if container exists
+                                    if (displayInfo.DockContainer != null)
+                                    {
+                                        WindowUtils.UpdateScale(displayIndex, settings.Scale);
+                                    }
+                                }
+                            }
+                        }
 
                         MenuManagerPatch._MMinstance.navigationController.Pop();
                     });
@@ -195,7 +235,26 @@ public class ModSettingsMenu : MonoBehaviour
         BuildScreenLayout(builder, monitors);
 
         // Grab settings for current display
-        var currentSettings = pendingSettings[selectedDisplay];
+        if (!pendingSettings.TryGetValue(selectedDisplay, out DisplaySettings currentSettings))
+        {
+            //no settings exist, get display details
+            var displayInfo = displays[selectedDisplay];
+            var monitor = DisplayUtils.GetWindowsMonitorForUnityDisplay(selectedDisplay);
+
+            currentSettings = new DisplaySettings();
+
+            if (monitor == null)
+            {
+                Logger.LogInfo($"Warning: Did not find Windows display for Unity display index {selectedDisplay}");
+                builder.AddExpandingVerticalSpacer();
+                return;
+            }
+
+            currentSettings.Name = displayInfo.name;
+            currentSettings.DeviceId = monitor.DeviceID;
+            pendingSettings[selectedDisplay] = currentSettings;
+        }
+
         var dispInfo = DisplayUtils.GetDisplayInfoFromIndex(selectedDisplay);
 
         // Add a picker for displays (works with the physical layout)
@@ -214,6 +273,7 @@ public class ModSettingsMenu : MonoBehaviour
                 }
             )
         );
+
 
         builder.AddField("Display Mode",
             builder.AddDropdownIntPicker(
@@ -240,7 +300,7 @@ public class ModSettingsMenu : MonoBehaviour
                 delegate (float f)
                 {
                     currentSettings.Scale = f;
-                    if (dispInfo.DockContainer != null)
+                    if (dispInfo?.DockContainer != null)
                         WindowUtils.UpdateScale(selectedDisplay, f);
                 },
                 0.2f,
@@ -258,7 +318,7 @@ public class ModSettingsMenu : MonoBehaviour
                 builder.Spacer(2f);
 
                 var toggle = builder.AddToggle(
-                    () => dispInfo.Background != null ? dispInfo.Background.enabled : currentSettings.SolidBg,
+                    () => dispInfo?.Background != null ? dispInfo.Background.enabled : currentSettings.SolidBg,
                     isOn =>
                         {
                             currentSettings.SolidBg = isOn;
@@ -278,7 +338,7 @@ public class ModSettingsMenu : MonoBehaviour
                 {
                     currentSettings.BgColour = colour;
 
-                    var background = GetDisplayInfoFromIndex(selectedDisplay).Background;
+                    var background = dispInfo?.Background;
                     if (background != null && ColorUtility.TryParseHtmlString(colour, out Color newCol))
                         background.color = newCol;
                 }
@@ -446,12 +506,6 @@ public class ModSettingsMenu : MonoBehaviour
             }
         }
         pendingSettings[displayIndex].Mode = newMode;
-    }
-
-    public void MoveDisplay(int i) 
-    {
-        Screen.MoveMainWindowTo(displays[i], Vector2Int.one);
-        Screen.fullScreen = true;
     }
     #endregion
 }
