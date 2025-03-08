@@ -10,6 +10,7 @@ using Helpers;
 using TMPro;
 using Logger = Multiscreen.Util.Logger;
 using Multiscreen.Util;
+using UnityEngine.SceneManagement;
 
 namespace Multiscreen;
 
@@ -41,6 +42,12 @@ public static class Multiscreen
             //get user preference
             userPrefFullScr = Screen.fullScreen;
             Logger.Log($"User Preference 'Full screen': {userPrefFullScr}");
+
+            SceneManager.sceneLoaded += (Scene s, LoadSceneMode mode) =>
+            {
+                Logger.Log($"Scene Loaded! {s.name}");
+                Screen.fullScreen = (s.name == "MainMenu" && userPrefFullScr);
+            };
 
             //Apply patches
             Logger.LogInfo("Patching...");
