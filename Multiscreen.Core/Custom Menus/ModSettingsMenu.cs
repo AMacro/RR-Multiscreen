@@ -349,10 +349,10 @@ public class ModSettingsMenu : MonoBehaviour
                         var background = DisplayUtils.GetDisplayInfoFromIndex(selectedDisplay)?.Background;
                         if (background != null)
                             background.enabled = isOn;
-                    }
+                    },
+                    enabled
                     );
 
-                toggle.GetComponent<Toggle>().interactable = enabled;
 
                 builder.Spacer(2f);
 
