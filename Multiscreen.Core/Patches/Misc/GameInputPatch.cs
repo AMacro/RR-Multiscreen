@@ -14,7 +14,7 @@ public class GameInputPatch
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(GameInput), nameof(GameInput.IsMouseOverGameWindow))]
-    private static bool IsMouseOverGameWindow(GameInput __instance, ref bool __result, Window window)
+    private static bool IsMouseOverGameWindow(ref bool __result, Window window)
     {
         //Multidisplay aware mousePosition
         Vector3 vector = Display.RelativeMouseAt(Input.mousePosition);

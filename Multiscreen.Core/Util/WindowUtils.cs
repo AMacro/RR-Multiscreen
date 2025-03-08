@@ -86,10 +86,9 @@ public static class WindowUtils
 
     public static int GetDisplayForWindow(this Window window)
     {
-        int display = 0;
 
         //check fastpath first
-        if (WindowDisplayMap.TryGetValue(window, out display))
+        if (WindowDisplayMap.TryGetValue(window, out int display))
             return display;
 
         // Get parent container
@@ -101,18 +100,16 @@ public static class WindowUtils
 
     public static void SetupWindow(this Window window)
     {
-        int currentIndex = 0;
         TMP_Dropdown selector;
 
         //capture this window
-        if (!WindowDisplayMap.TryGetValue(window, out currentIndex))
+        if (!WindowDisplayMap.TryGetValue(window, out _))
         {
-            currentIndex = window.GetDisplayForWindow();
-            WindowDisplayMap[window] = currentIndex;
+            WindowDisplayMap[window] = window.GetDisplayForWindow();
         }
 
         //add a titlebar selector
-        if (!WindowSelectorMap.TryGetValue(window, out selector))
+        if (!WindowSelectorMap.TryGetValue(window, out _))
         {
             selector = CreateDropdown(window);
             Logger.LogDebug($"SetupWindow({window.name}) selector is null {selector == null}");
@@ -135,7 +132,7 @@ public static class WindowUtils
             return null;
 
         //create a container for our dropdown
-        GameObject goSelector = new GameObject("Screen Selector");
+        GameObject goSelector = new("Screen Selector");
         RectTransform rtSelector = goSelector.AddComponent<RectTransform>();
         goSelector.transform.SetParent(tb.transform, false);
 

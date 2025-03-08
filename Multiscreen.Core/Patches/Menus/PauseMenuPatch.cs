@@ -10,7 +10,7 @@ public class PauseMenuPatch
 {
     [HarmonyPrefix]
     [HarmonyPatch(typeof(PauseMenu), nameof(PauseMenu._Quit))]
-    private static void _Quit(PauseMenu __instance)
+    private static void _Quit()
     {
         Logger.LogDebug($"_Quit()");
 

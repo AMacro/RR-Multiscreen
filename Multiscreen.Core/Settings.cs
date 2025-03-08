@@ -14,24 +14,16 @@ public class Settings : UnityModManager.ModSettings, IDrawable
 {
     public static Action<Settings> OnSettingsUpdated;
 
-    //[Header("Second Display")]
-    //[Draw("Second Display", Tooltip = "This is the Unity Display number: -1 not set, must be >= 1")]
-
-    public int version = 2;
+    public int Version = 2;
 
     //V1.x Settings
-    //public int gameDisplay = -1;
-    //public int secondDisplay = -1;
-    //public float secondDisplayScale = 1f;
-    //public bool solidBG = false;
-    //public string bgColour = "000000";
-    public bool focusManager = true;
+    public bool FocusManager = true;
 
     //V2.x Settings 
-    public List<DisplaySettings> displays = [];
-    public bool saveWindowsOnExit = true;
-    public bool restoreWindowsOnLoad = true;
-    public WindowSettings[] windows;
+    public List<DisplaySettings> Displays = [];
+    public bool SaveWindowsOnExit = true;
+    public bool RestoreWindowsOnLoad = true;
+    public List<WindowSettings> Windows;
 
     [Space(10)]
     [Draw("Logging Level", Tooltip = "Amount of debug logging to capture."/*, VisibleOn = "ShowAdvancedSettings|true"*/)]
@@ -139,10 +131,9 @@ public class DisplaySettings : ICloneable<DisplaySettings>
 
 public class WindowSettings
 {
-    public string windowName;
-    public int displayNum;
-    public Vector3 windowPos;
-    public Vector3 windowSize;
-    public bool shown;
-    
+    public string WindowName;
+    public string DeviceId;
+    public Vector3 WindowPos;
+    public Vector3 WindowSize;
+    public bool Show;
 }

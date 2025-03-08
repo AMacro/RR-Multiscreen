@@ -10,7 +10,7 @@ using UnityEngine;
 public class DisplayFocusManager : MonoBehaviour
 {
     private int lastScreen;
-    private Dictionary<int, IntPtr> displayToWindow = new Dictionary<int, IntPtr>();
+    private readonly Dictionary<int, IntPtr> displayToWindow = [];
 
     #region Windows API
 
@@ -85,12 +85,12 @@ public class DisplayFocusManager : MonoBehaviour
         }
     }
 
-    private void OnApplicationFocus(bool hasFocus)
+    protected void OnApplicationFocus(bool hasFocus)
     {
         Logger.LogDebug($"DisplayFocusManager.OnApplicationFocus({hasFocus})");
     }
 
-    private void Update()
+    public void Update()
     {
         Vector3 mousePos = Display.RelativeMouseAt(Input.mousePosition);
         int currentScreen = mousePos.z >= 0 ? (int)mousePos.z : 0;
@@ -110,7 +110,7 @@ public class DisplayFocusManager : MonoBehaviour
 
     private List<Tuple<IntPtr, string>> FindCurrentProcessWindows()
     {
-        List<Tuple<IntPtr, string>> processWindows = new List<Tuple<IntPtr, string>>();
+        List<Tuple<IntPtr, string>> processWindows = [];
         uint currentPID = GetCurrentProcessId();
 
         IntPtr shellWindow = GetActiveWindow();
@@ -118,12 +118,11 @@ public class DisplayFocusManager : MonoBehaviour
 
         while (windowHandle != IntPtr.Zero)
         {
-            uint windowPID;
-            GetWindowThreadProcessId(windowHandle, out windowPID);
+            GetWindowThreadProcessId(windowHandle, out uint windowPID);
 
             if (windowPID == currentPID)
             {
-                StringBuilder title = new StringBuilder(MAX_WINDOW_TITLE_LENGTH);
+                StringBuilder title = new(MAX_WINDOW_TITLE_LENGTH);
                 GetWindowText(windowHandle, title, MAX_WINDOW_TITLE_LENGTH);
 
                 Tuple<IntPtr, string> newWin = new (windowHandle, title.ToString());
@@ -161,8 +160,7 @@ public class DisplayFocusManager : MonoBehaviour
         Logger.LogDebug($"IsWindowTopMostOnDisplay() MonitorFromWindow({windowHandle}): {monitor}, for display {lastScreen}");
 
         // Get our window's rectangle
-        RECT windowRect;
-        GetWindowRect(windowHandle, out windowRect);
+        GetWindowRect(windowHandle, out RECT windowRect);
         Logger.LogDebug($"IsWindowTopMostOnDisplay() Target window rect: {windowHandle}: {{({windowRect.Left},{windowRect.Top}),({windowRect.Right},{windowRect.Bottom})}}");
 
         // Start from the foreground window and walk down the Z-order
@@ -170,7 +168,7 @@ public class DisplayFocusManager : MonoBehaviour
         
         Logger.LogDebug(()=> 
             {
-                StringBuilder fgTitle = new StringBuilder(MAX_WINDOW_TITLE_LENGTH);
+                StringBuilder fgTitle = new(MAX_WINDOW_TITLE_LENGTH);
                 GetWindowText(currentWindow, fgTitle, MAX_WINDOW_TITLE_LENGTH);
 
                 return $"IsWindowTopMostOnDisplay() Starting at ForegroundWindow: {currentWindow}, Title: \"{fgTitle}\"";
@@ -182,7 +180,7 @@ public class DisplayFocusManager : MonoBehaviour
 
             Logger.LogDebug(() =>
                 {
-                    StringBuilder title = new StringBuilder(MAX_WINDOW_TITLE_LENGTH);
+                    StringBuilder title = new(MAX_WINDOW_TITLE_LENGTH);
                     GetWindowText(currentWindow, title, MAX_WINDOW_TITLE_LENGTH);
 
                     return $"IsWindowTopMostOnDisplay() Checking window: {currentWindow}, Title: \"{title}\", Monitor: {MonitorFromWindow(currentWindow, MONITOR_DEFAULTTONEAREST)}, Target Monitor: {monitor}";
@@ -198,8 +196,7 @@ public class DisplayFocusManager : MonoBehaviour
                     return true;
                 }
 
-                RECT currentRect;
-                GetWindowRect(currentWindow, out currentRect);
+                GetWindowRect(currentWindow, out RECT currentRect);
                 Logger.LogDebug($"IsWindowTopMostOnDisplay() On same monitor - Window: {currentWindow}, Rect: {{({currentRect.Left},{currentRect.Top}),({currentRect.Right},{currentRect.Bottom})}}");
 
                 if (RectsOverlap(windowRect, currentRect) && !(currentRect.Left == currentRect.Right && currentRect.Top == currentRect.Bottom))

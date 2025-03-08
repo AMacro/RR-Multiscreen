@@ -121,7 +121,7 @@ public static class DisplayUtils
         var monitors = GetMonitorLayout();
 
         // No settings - register main game on current display
-        settings.displays ??= [];
+        settings.Displays ??= [];
 
         // Find the current display and monitor
         int currentDisplayIndex = displays.FindIndex(d => d.Equals(Screen.mainWindowDisplayInfo));
@@ -129,7 +129,7 @@ public static class DisplayUtils
         Logger.LogInfo($"Current Unity display: {currentDisplayIndex}, Monitor: {currentMonitor?.FriendlyName ?? "Unknown"}");
 
         // Find all settings for main display that are currently connected
-        var connectedMainDisplaySettings = settings.displays
+        var connectedMainDisplaySettings = settings.Displays
             .Where(d => d.Mode == DisplayMode.Main)
             .Where(d => cachedMonitorInfo.Any(m => string.Equals(d.DeviceId, m.DeviceID, StringComparison.OrdinalIgnoreCase)))
             .ToList();
@@ -149,7 +149,7 @@ public static class DisplayUtils
                 AllowWindows = true
             };
 
-            settings.displays.Add(mainDisplaySettings);
+            settings.Displays.Add(mainDisplaySettings);
 
         }
         else if (connectedMainDisplaySettings.Count == 1)
@@ -214,7 +214,7 @@ public static class DisplayUtils
 
         // Find all settings for other displays that are currently connected
         var connectedOtherDisplaySettings = 
-            settings.displays
+            settings.Displays
                 .Where(d => d.Mode != DisplayMode.Disabled && d.Mode != DisplayMode.Main)
                 .Where(d => cachedMonitorInfo.Any(m => string.Equals(d.DeviceId, m.DeviceID, StringComparison.OrdinalIgnoreCase)))
                 .ToList();
@@ -222,7 +222,7 @@ public static class DisplayUtils
         // Activate additional displays from settings
         foreach (var displaySetting in connectedOtherDisplaySettings)
         {
-            var logicDisplay = settings.displays.IndexOf(displaySetting);
+            var logicDisplay = settings.Displays.IndexOf(displaySetting);
 
             // display 0 is reserved and must be either the main display or not used
             if (logicDisplay > 0)

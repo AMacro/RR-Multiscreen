@@ -21,7 +21,7 @@ public static class Multiscreen
     public static bool userPrefFullScr;
 
     [UsedImplicitly]
-    private static bool Load(UnityModManager.ModEntry modEntry)
+    internal static bool Load(UnityModManager.ModEntry modEntry)
     {
         ModEntry = modEntry;
         settings = Settings.Load<Settings>(modEntry);
@@ -65,7 +65,7 @@ public static class Multiscreen
 
             DisplayUtils.InitialiseDisplays(settings);
 
-            if (settings.focusManager)
+            if (settings.FocusManager)
                 DisplayUtils.EnableDisplayFocusManager();
         }
         catch (Exception ex)
@@ -133,36 +133,6 @@ public static class Multiscreen
         {
             earlyAccessSplash.Dismiss();
             UnityEngine.Object.Destroy(earlyAccessSplash);
-        });
-
-        earlyAccessSplash.Show();
-    }
-    private static void ShowRestart()
-    {
-        EarlyAccessSplash earlyAccessSplash = UnityEngine.Object.FindObjectOfType<EarlyAccessSplash>();
-
-        if (earlyAccessSplash == null)
-            return;
-
-        earlyAccessSplash = UnityEngine.Object.Instantiate<EarlyAccessSplash>(earlyAccessSplash, earlyAccessSplash.transform.parent);
-
-        TextMeshProUGUI text = GameObject.Find("Canvas/EA(Clone)/EA Panel/Scroll View/Viewport/Text").GetComponentInChildren<TextMeshProUGUI>();
-        text.text = "\r\n<style=h3>Restart Required!</style>\r\n\r\nAn update has been made to Unity Mod Manager settings.\r\n\r\nPlease restart Railroader.";
-
-        RectTransform rt = GameObject.Find("Canvas/EA(Clone)/EA Panel").transform.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(rt.rect.width, rt.rect.height / 2);
-
-
-        UnityEngine.Object.DestroyImmediate(GameObject.Find("Canvas/EA(Clone)/EA Panel/Label Regular"));
-        //UnityEngine.Object.DestroyImmediate(GameObject.Find("Canvas/EA/EA Panel/Buttons/Opt In"));
-        UnityEngine.Object.DestroyImmediate(GameObject.Find("Canvas/EA(Clone)/EA Panel/Buttons/Opt Out"));
-
-        UnityEngine.UI.Button button = GameObject.Find("Canvas/EA(Clone)/EA Panel/Buttons/Opt In").GetComponentInChildren<UnityEngine.UI.Button>();
-        button.TMPText().text = "Quit";
-        button.onClick.RemoveAllListeners();
-        button.onClick.AddListener(delegate
-        {
-            Application.Quit();
         });
 
         earlyAccessSplash.Show();

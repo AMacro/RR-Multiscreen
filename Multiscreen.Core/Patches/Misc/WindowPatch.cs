@@ -13,7 +13,7 @@ public class WindowPatch
 {
     [HarmonyPrefix]
     [HarmonyPatch(typeof(Window), nameof(Window.OnPointerDown))]
-    private static void OnPointerDown(Window __instance, PointerEventData eventData)
+    private static void OnPointerDown(Window __instance)
     {
         //force Input to be refreshed
         Keyboard.current.altKey.ReadValue();

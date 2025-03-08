@@ -15,7 +15,7 @@ public static class MultiscreenLoader
 
 
     [UsedImplicitly]
-    private static bool Load(UnityModManager.ModEntry modEntry)
+    public static bool Load(UnityModManager.ModEntry modEntry)
     {
         ModEntry = modEntry;
 
@@ -58,7 +58,7 @@ public static class MultiscreenLoader
                 return false;
             }
 
-            bool result = (bool)loadMethod.Invoke(null, new object[] { modEntry });
+            bool result = (bool)loadMethod.Invoke(null, [modEntry]);
 
             return result;
 

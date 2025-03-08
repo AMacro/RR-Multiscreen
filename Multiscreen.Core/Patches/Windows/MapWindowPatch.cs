@@ -21,7 +21,7 @@ public static class MapWindowPatch
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(MapWindow), nameof(MapWindow.OnZoom))]
-    private static void OnZoom(MapWindow __instance, float delta, Vector2 viewportNormalizedPoint)
+    private static void OnZoom(float delta, Vector2 viewportNormalizedPoint)
     {
         Logger.LogVerbose($"MapWindow.OnZoom({delta}, {viewportNormalizedPoint})");
 

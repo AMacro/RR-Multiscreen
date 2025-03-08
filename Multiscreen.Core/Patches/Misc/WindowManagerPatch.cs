@@ -19,7 +19,7 @@ public static class WindowManager_Patch
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(WindowManager), nameof(WindowManager.HitTest))]
-    private static bool HitTest(WindowManager __instance, ref Window __result, Vector3 mousePosition)
+    private static bool HitTest(ref Window __result, Vector3 mousePosition)
     {
         Logger.LogVerbose($"Hit Test({mousePosition})");
 
@@ -59,7 +59,7 @@ public static class WindowManager_Patch
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(WindowManager), nameof(WindowManager.CloseAllWindows))]
-    private static void CloseAllWindows(WindowManager __instance)
+    private static void CloseAllWindows()
     {
         Logger.LogDebug($"Closing All Windows");
 

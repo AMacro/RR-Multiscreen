@@ -25,7 +25,7 @@ public static class MenuManagerPatch
 
         _instance = __instance;
 
-        _instance.AddButton("Multiscreen Mod",onClick);
+        _instance.AddButton("Multiscreen Mod",OnClick);
 
         Button[] buttons = _instance.GetComponentsInChildren<Button>();
 
@@ -40,10 +40,7 @@ public static class MenuManagerPatch
                 modSettings = button;
         }
 
-        if (modSettings != null)
-        {
-            modSettings.transform.SetSiblingIndex(insertindex);
-        }
+        modSettings?.transform.SetSiblingIndex(insertindex);
   
 
         //Multiscreen.Log($"My Index: {modSettings.transform.GetSiblingIndex()}");
@@ -71,7 +68,7 @@ public static class MenuManagerPatch
 
     }
 
-    private static void onClick()
+    private static void OnClick()
     {
         if (_MMinstance != null)
         {

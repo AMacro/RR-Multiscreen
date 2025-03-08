@@ -1,5 +1,4 @@
 ﻿using System;
-using static UnityModManagerNet.UnityModManager;
 
 namespace Multiscreen.Util;
 
@@ -15,14 +14,6 @@ public static class Logger
 {
 
     #region Logging
-
-    /*
-    public static void LogDebug(Func<object> resolver)
-    {
-        if (!Multiscreen.settings.DebugLogging)
-            return;
-        WriteLog($"[Debug] {resolver.Invoke()}");
-    }*/
 
     public static void Log(object msg, LogLevel level = LogLevel.Info)
     {
