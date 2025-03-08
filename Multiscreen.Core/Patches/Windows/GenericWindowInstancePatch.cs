@@ -46,6 +46,17 @@ public static class GenericWindowInstancePatch
             }
 
             Logger.LogInfo($"Found {methods.Count} methods to patch");
+            Logger.LogDebug(() =>
+            {
+                StringBuilder sb = new();
+
+                sb.AppendLine($"GenericWindowInstancePatch Found {methods?.Count} methods to patch");
+
+                foreach (var method in methods)
+                    sb.AppendLine($"Will patch: {method?.DeclaringType?.Name}.{method?.Name}");
+
+                return sb.ToString();
+            });
 
             return methods;
         }
