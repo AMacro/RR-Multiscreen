@@ -17,23 +17,45 @@ public static class GenericWindowInstancePatch
 {
     public static IEnumerable<MethodBase> TargetMethods()
     {
-        var types = GenericWindowInstanceHelper.GetWindowTypesToPatch();
-        var methods = types.SelectMany(t => GenericWindowInstanceHelper.GetMethodsToPatch(t)).ToList();
-
-        Logger.LogDebug(() =>
+        try
         {
-            StringBuilder sb = new();
+            Logger.LogInfo("Beginning TargetMethods() in GenericWindowInstancePatch");
 
-            sb.AppendLine($"GenericWindowInstancePatch Found {methods.Count} methods to patch");
+            var types = GenericWindowInstanceHelper.GetWindowTypesToPatch();
+            if (types == null)
+            {
+                Logger.LogInfo("GetWindowTypesToPatch() returned null");
+                return [];
+            }
 
-            foreach (var method in methods)
-                sb.AppendLine($"Will patch: {method.DeclaringType.Name}.{method.Name}");
+            Logger.LogInfo($"Found {types.Count()} window types to patch");
 
-            return sb.ToString();
-        });
+            var methods = new List<MethodBase>();
+            foreach (var type in types)
+            {
+                try
+                {
+                    var methodsForType = GenericWindowInstanceHelper.GetMethodsToPatch(type);
+                    if (methodsForType != null)
+                        methods.AddRange(methodsForType);
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogInfo($"Error getting methods for type {type.Name}: {ex.Message}");
+                }
+            }
 
-        return methods;
+            Logger.LogInfo($"Found {methods.Count} methods to patch");
+
+            return methods;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogInfo($"Critical error in TargetMethods: {ex.Message}\n{ex.StackTrace}");
+            return null;
+        }
     }
+
 
     public static bool Prefix(MethodBase __originalMethod, ref object __result)
     {
