@@ -299,7 +299,7 @@ public static class DisplayUtils
         var camera = CreateDisplayCamera(displayIndex);
 
         // Create and setup canvas
-        var canvas = CreateDisplayCanvas(displayIndex, camera, settings);
+        var canvas = CreateDisplayCanvas(displayIndex, camera);
         newDisplay.DockContainer = canvas;
 
         var bg = SetupBackground(canvas, settings);
@@ -407,18 +407,18 @@ public static class DisplayUtils
         return camera;
     }
 
-    private static GameObject CreateDisplayCanvas(int displayIndex, Camera camera, DisplaySettings settings)
+    private static GameObject CreateDisplayCanvas(int displayIndex, Camera camera)
     {
-        var canvasGO = new GameObject(UNDOCK + displayIndex);
-        canvasGO.layer = 5; // GUI layer
+        var canvasGO = new GameObject(UNDOCK + displayIndex)
+        {
+            layer = 5 // GUI layer
+        };
 
         var canvas = canvasGO.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 1;
         canvas.worldCamera = camera;
         canvas.targetDisplay = displayIndex;
-
-        //SetupBackground(background, settings); //moved to ActivateDisplay(), unless we need to do this before adding scalers
 
         canvasGO.AddComponent<CanvasScaler>();
         canvasGO.AddComponent<GraphicRaycaster>();
@@ -649,7 +649,7 @@ public static class DisplayUtils
         GL.PopMatrix();
 
         // Save result
-        Texture2D finalTex = new Texture2D(width, height, TextureFormat.RGB24, false);
+        Texture2D finalTex = new(width, height, TextureFormat.RGB24, false);
         RenderTexture.active = dest;
         finalTex.ReadPixels(new Rect(0, 0, width, height), 0, 0);
         finalTex.Apply();
@@ -814,10 +814,10 @@ public static class DisplayUtils
 
     public static void LogUnityDisplayInfo()
     {
-        List<DisplayInfo> displays = new List<DisplayInfo>();
+        List<DisplayInfo> displays = [];
         Screen.GetDisplayLayout(displays);
 
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new();
         sb.AppendLine("\r\n===== UNITY DISPLAY INFORMATION =====");
 
         if (displays.Count == 0)

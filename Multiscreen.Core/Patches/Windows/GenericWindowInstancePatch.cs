@@ -61,7 +61,7 @@ public static class GenericWindowInstancePatch
 public static class GenericWindowInstanceHelper
 {
 
-    static readonly string[] MANUAL_TYPES = { "EngineRosterPanel", "PlacerWindow" };
+    static readonly string[] MANUAL_TYPES = ["EngineRosterPanel", "PlacerWindow"];
 
     public static IEnumerable<Type> GetWindowTypesToPatch()
     {

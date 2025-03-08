@@ -17,14 +17,7 @@ public static class Multiscreen
 {
     public static UnityModManager.ModEntry ModEntry;
     public static Settings settings;
-    //public static int gameDisplay = 0;
-    //public static int secondDisplay = 1;
-    //public static int targetDisplay = 0;
     public static bool userPrefFullScr;
-
-    //private const string LOG_FILE = "multiscreen.log";
-
-
 
     [UsedImplicitly]
     private static bool Load(UnityModManager.ModEntry modEntry)
@@ -65,7 +58,7 @@ public static class Multiscreen
 
             DisplayUtils.InitialiseDisplays(settings);
 
-            if(settings.focusManager)
+            if (settings.focusManager)
                 DisplayUtils.EnableDisplayFocusManager();
         }
         catch (Exception ex)
@@ -94,7 +87,7 @@ public static class Multiscreen
 
     private static void LateUpdate(UnityModManager.ModEntry modEntry, float deltaTime)
     {
-        if(ModEntry.NewestVersion != null && ModEntry.NewestVersion.ToString() != "")
+        if (ModEntry.NewestVersion != null && ModEntry.NewestVersion.ToString() != "")
         {
             Logger.LogInfo($"Multiscreen Latest Version: {ModEntry.NewestVersion}");
 
@@ -104,9 +97,9 @@ public static class Multiscreen
             {
                 ShowUpdate();
             }
-            
+
         }
-        
+
     }
     private static void ShowUpdate()
     {
@@ -129,7 +122,8 @@ public static class Multiscreen
         UnityEngine.UI.Button button = GameObject.Find("Canvas/EA(Clone)/EA Panel/Buttons/Opt In").GetComponentInChildren<UnityEngine.UI.Button>();
         button.TMPText().text = "OK";
         button.onClick.RemoveAllListeners();
-        button.onClick.AddListener(delegate {
+        button.onClick.AddListener(delegate
+        {
             earlyAccessSplash.Dismiss();
             UnityEngine.Object.Destroy(earlyAccessSplash);
         });
@@ -159,7 +153,8 @@ public static class Multiscreen
         UnityEngine.UI.Button button = GameObject.Find("Canvas/EA(Clone)/EA Panel/Buttons/Opt In").GetComponentInChildren<UnityEngine.UI.Button>();
         button.TMPText().text = "Quit";
         button.onClick.RemoveAllListeners();
-        button.onClick.AddListener(delegate {
+        button.onClick.AddListener(delegate
+        {
             Application.Quit();
         });
 
