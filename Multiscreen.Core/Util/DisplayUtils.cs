@@ -305,13 +305,13 @@ public static class DisplayUtils
         var bg = SetupBackground(canvas, settings);
         newDisplay.Background = bg;
 
-        // Store in actived display
+        // Store in active display
         ActiveDisplays.Add(newDisplay);
 
         Logger.LogInfo($"Display {displayIndex} Activated");
     }
 
-    private static void MoveAndRestartApplication(DisplaySettings targetSettings, List<DisplayInfo> displays)
+    public static void MoveAndRestartApplication(DisplaySettings targetSettings, List<DisplayInfo> displays)
     {
         // Find the Unity display that matches the target device ID
         int targetDisplayIndex = -1;
@@ -385,7 +385,7 @@ public static class DisplayUtils
         RestartApplication();
     }
 
-    private static void RestartApplication()
+    public static void RestartApplication()
     {
         Logger.LogInfo("Requesting restart via Steam");
 
