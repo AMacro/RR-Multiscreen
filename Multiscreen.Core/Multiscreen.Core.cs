@@ -1,16 +1,13 @@
 ﻿using System;
 using HarmonyLib;
 using JetBrains.Annotations;
-using UnityEngine.UI;
 using UnityEngine;
 using UnityModManagerNet;
 using System.Collections.Generic;
-using Analytics;
-using Helpers;
-using TMPro;
 using Logger = Multiscreen.Util.Logger;
 using Multiscreen.Util;
 using UnityEngine.SceneManagement;
+using UI.Common;
 
 namespace Multiscreen;
 
@@ -67,6 +64,22 @@ public static class Multiscreen
 
             if (settings.FocusManager)
                 DisplayUtils.EnableDisplayFocusManager();
+
+            string message = "";
+            bool showMessage = false;
+
+            if(settings.LastRun == -1)
+            {
+                message = "Multiscreen mod has loaded successfully!\r\n\r\nPlease click the 'Multiscreen Mod' button on the main menu to configure your screens.";
+                showMessage = true;
+            }
+
+            if (showMessage)
+                ModalAlertController.PresentOkay("Multiscreen", message, null);
+
+            if (settings.LastRun != settings.Version)
+                settings.LastRun = settings.Version;
+
         }
         catch (Exception ex)
         {
@@ -102,39 +115,12 @@ public static class Multiscreen
 
             if (ModEntry.NewestVersion > ModEntry.Version)
             {
-                ShowUpdate();
+                ModalAlertController.PresentOkay("Multiscreen", "A new version of Multiscreen Mod is available.\r\n\r\n" +
+                    $"Current version: { ModEntry.Version}\r\n" +
+                    $"New version: { ModEntry.NewestVersion}\r\n\r\n" +
+                    $"Run Unity Mod Manager Installer to apply the update.", null);
             }
 
         }
-
-    }
-    private static void ShowUpdate()
-    {
-        EarlyAccessSplash earlyAccessSplash = UnityEngine.Object.FindObjectOfType<EarlyAccessSplash>();
-
-        if (earlyAccessSplash == null)
-            return;
-
-        earlyAccessSplash = UnityEngine.Object.Instantiate<EarlyAccessSplash>(earlyAccessSplash, earlyAccessSplash.transform.parent);
-
-        TextMeshProUGUI text = GameObject.Find("Canvas/EA(Clone)/EA Panel/Scroll View/Viewport/Text").GetComponentInChildren<TextMeshProUGUI>();
-        text.text = $"\r\n<style=h3>Multiscreen Update</style>\r\n\r\nA new version of Multiscreen Mod is available.\r\n\r\nCurrent version: {ModEntry.Version}\r\nNew version: {ModEntry.NewestVersion}\r\n\r\nRun Unity Mod Manager Installer to apply the update.";
-
-        RectTransform rt = GameObject.Find("Canvas/EA(Clone)/EA Panel").transform.GetComponent<RectTransform>();
-
-
-        UnityEngine.Object.DestroyImmediate(GameObject.Find("Canvas/EA(Clone)/EA Panel/Label Regular"));
-        UnityEngine.Object.DestroyImmediate(GameObject.Find("Canvas/EA(Clone)/EA Panel/Buttons/Opt Out"));
-
-        UnityEngine.UI.Button button = GameObject.Find("Canvas/EA(Clone)/EA Panel/Buttons/Opt In").GetComponentInChildren<UnityEngine.UI.Button>();
-        button.TMPText().text = "OK";
-        button.onClick.RemoveAllListeners();
-        button.onClick.AddListener(delegate
-        {
-            earlyAccessSplash.Dismiss();
-            UnityEngine.Object.Destroy(earlyAccessSplash);
-        });
-
-        earlyAccessSplash.Show();
     }
 }

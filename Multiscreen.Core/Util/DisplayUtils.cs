@@ -861,7 +861,7 @@ public static class DisplayUtils
         }
 
         sb.AppendLine("\r\n--- Additional Screen Information ---");
-        sb.AppendLine($"Current Resolution: {Screen.currentResolution.width} x {Screen.currentResolution.height} @ {Screen.currentResolution.refreshRate} Hz");
+        sb.AppendLine($"Current Resolution: {Screen.currentResolution.width} x {Screen.currentResolution.height} @ {Screen.currentResolution.refreshRateRatio} Hz");
         sb.AppendLine($"Full Screen: {Screen.fullScreen}");
         sb.AppendLine($"Full Screen Mode: {Screen.fullScreenMode}");
         sb.AppendLine($"System Resolution: {Screen.width} x {Screen.height}");
