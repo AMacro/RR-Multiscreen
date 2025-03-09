@@ -10,8 +10,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Multiscreen.Patches.Menus;
 using Multiscreen.Util;
-using static Multiscreen.Util.DisplayUtils;
 using Logger = Multiscreen.Util.Logger;
+using Multiscreen.Patches.Windows;
+using static Multiscreen.DisplaySettings;
 
 namespace Multiscreen.CustomMenu;
 
@@ -21,22 +22,30 @@ public class ModSettingsMenu : MonoBehaviour
     const int SCREEN_LAYOUT_WIDTH = 460;
     const int SCREEN_LAYOUT_HEIGHT = 200;
     const int SCREEN_LAYOUT_PADDING = 10;
-    private static readonly string[] DISPLAY_MODES = ["Disabled", "Main Game", "Extra Windows"];// not yet ready, "Full Screen Map", "CTC"];
     #endregion
 
     #region Fields
+
+    // Caches
+    private readonly List<string> windowPositions = [];
+    private readonly List<int> windowPositionValues = [];
+
+    private readonly List<string> displayModes = [];
+    private readonly List<int> displayModeValues = [];
+
+    private readonly List<DisplayInfo> displays = [];
+    private readonly List<int> displayValues = [];
+
+    private readonly List<string> windowNames = [];
+
+    private readonly Dictionary<int, DisplaySettings> pendingSettings = [];
+
+    // UI
     private GameObject contentPanel;
     private UIBuilderAssets assets;
     private UIPanelBuilder buttonsBuilder;
     private static readonly UIState<string> SelectedTab = new("disp");
 
-    private readonly List<DisplayInfo> displays = [];
-    private readonly List<int> displayValues = [];
-
-    private readonly List<string> displayModes = [];
-    private readonly List<int> displayModeValues = [];
-
-    private readonly Dictionary<int, DisplaySettings> pendingSettings = [];
     private HashSet<int> originalActiveDisplays;
     private int selectedDisplay = 0;
 
@@ -52,7 +61,6 @@ public class ModSettingsMenu : MonoBehaviour
     {
         InitializeUIComponents();
         LoadDisplayInformation();
-        InitializeDisplayModes();
         LoadSettings();
     }
 
@@ -71,6 +79,32 @@ public class ModSettingsMenu : MonoBehaviour
         DestroyImmediate(GameObject.Find("Preferences Menu(Clone)/Content/Tab View(Clone)"));
         TextMeshProUGUI title = GetComponentInChildren<TextMeshProUGUI>();
         title.text = "Multiscreen";
+
+        // Build static list caches
+        var names = Enum.GetNames(typeof(DisplaySettings.DisplayModes))
+                        .Select(name => name.SplitCamelCase())
+                        .ToList();
+        displayModes.AddRange(names);
+        displayModeValues.AddRange(displayModes.Select((String r, int i) => i));
+
+
+        names = Enum.GetNames(typeof(WindowSettings.Positions))
+                        .Select(name => name.SplitCamelCase())
+                        .ToList();
+
+        windowPositions.AddRange(names);
+        windowPositionValues.AddRange(windowPositions.Select((String r, int i) => i));
+
+        
+        names = GenericWindowInstanceHelper.GetWindowTypesToPatch()
+                        .Select(t => t.Name.Split('.').Last().Replace("Window", "").Replace("Panel", "").SplitCamelCase())
+                        .OrderBy(t => t)
+                        .ToList();
+
+        windowNames.AddRange(names);
+
+        Logger.LogDebug($"Window names: {string.Join(", ", windowNames)}");
+
     }
 
     private void LoadDisplayInformation()
@@ -78,13 +112,6 @@ public class ModSettingsMenu : MonoBehaviour
         // Get all displays connected to the system
         Screen.GetDisplayLayout(displays);
         displayValues.AddRange(displays.Select((DisplayInfo r, int i) => i));
-    }
-
-    private void InitializeDisplayModes()
-    {
-        // Initialize display modes list
-        displayModes.AddRange(DISPLAY_MODES);
-        displayModeValues.AddRange(displayModes.Select((String r, int i) => i));
     }
     #endregion
 
@@ -339,7 +366,7 @@ public class ModSettingsMenu : MonoBehaviour
             builder.HStack(delegate (UIPanelBuilder builder)
             {
                 // This setting can only be changed when the display is secondary
-                var enabled = currentSettings.Mode == DisplayMode.Secondary;
+                var enabled = currentSettings.Mode == DisplayModes.ExtraWindows;
 
                 var toggle = builder.AddToggle(
                     () => dispInfo?.Background != null ? dispInfo.Background.enabled : currentSettings.SolidBg,
@@ -397,7 +424,6 @@ public class ModSettingsMenu : MonoBehaviour
     private void BuildWindowsPanel(UIPanelBuilder builder)
     {
 
-        builder.AddExpandingVerticalSpacer();
     }
     #endregion
 
@@ -451,30 +477,30 @@ public class ModSettingsMenu : MonoBehaviour
             var settings = DisplayUtils.GetDisplaySettings(i, true) ??
                 new DisplaySettings
                 {
-                    Mode = DisplayMode.Disabled
+                    Mode = DisplayModes.Disabled
                 };
 
             pendingSettings[i] = settings.Clone();
         }
 
-        originalActiveDisplays = new(pendingSettings.Where(x => x.Value.Mode != DisplayMode.Disabled).Select(x => x.Key));
-        originalMainDisplay = pendingSettings.First(x => x.Value.Mode == DisplayMode.Main).Key;
+        originalActiveDisplays = new(pendingSettings.Where(x => x.Value.Mode != DisplayModes.Disabled).Select(x => x.Key));
+        originalMainDisplay = pendingSettings.First(x => x.Value.Mode == DisplayModes.Main).Key;
         originalFocusManager = DisplayUtils.FocusManagerActive;
         newFocusManager = originalFocusManager;
     }
 
-    private void UpdateDisplayMode(int displayIndex, DisplayMode newMode)
+    private void UpdateDisplayMode(int displayIndex, DisplayModes newMode)
     {
         // Ensure device information is populated for the display
         EnsureDeviceInfoForDisplay(displayIndex);
 
-        if (newMode == DisplayMode.Main)
+        if (newMode == DisplayModes.Main)
         {
             // Find and update previous main display
-            var previousMain = pendingSettings.FirstOrDefault(x => x.Value.Mode == DisplayMode.Main);
+            var previousMain = pendingSettings.FirstOrDefault(x => x.Value.Mode == DisplayModes.Main);
             if (previousMain.Value != null)
             {
-                previousMain.Value.Mode = DisplayMode.Disabled;
+                previousMain.Value.Mode = DisplayModes.Disabled;
             }
         }
 
@@ -556,22 +582,22 @@ public class ModSettingsMenu : MonoBehaviour
     {
         // Save focus manager setting
         if (originalFocusManager != newFocusManager)
-            Multiscreen.settings.focusManager = DisplayUtils.FocusManagerActive;
+            Multiscreen.settings.FocusManager = DisplayUtils.FocusManagerActive;
 
         // Save displays settings
-        Multiscreen.settings.displays = pendingSettings.Values.ToList();
+        Multiscreen.settings.Displays = pendingSettings.Values.ToList();
         Multiscreen.settings.Save(Multiscreen.ModEntry);
     }
 
     private void HandleDisplayChanges()
     {
         // Get new settings
-        var mainDisplayEntry = pendingSettings.First(x => x.Value.Mode == DisplayMode.Main);
+        var mainDisplayEntry = pendingSettings.First(x => x.Value.Mode == DisplayModes.Main);
         int newMainDisplay = mainDisplayEntry.Key;
         DisplaySettings newMainDisplaySettings = mainDisplayEntry.Value;
 
         var newActiveDisplayIndices = pendingSettings
-            .Where(x => x.Value.Mode != DisplayMode.Disabled)
+            .Where(x => x.Value.Mode != DisplayModes.Disabled)
             .Select(x => x.Key)
             .ToHashSet();
 
@@ -598,7 +624,7 @@ public class ModSettingsMenu : MonoBehaviour
     private void ApplyDisplayChanges()
     {
         // Activate any new displays or update existing ones
-        foreach (var entry in pendingSettings.Where(x => x.Value.Mode != DisplayMode.Disabled))
+        foreach (var entry in pendingSettings.Where(x => x.Value.Mode != DisplayModes.Disabled))
         {
             int displayIndex = entry.Key;
             var settings = entry.Value;
@@ -647,8 +673,8 @@ public class ModSettingsMenu : MonoBehaviour
         // Display 0 can only be Disabled or Main
         if (displayIndex == 0)
         {
-            availableModes.Add((int)DisplayMode.Disabled);
-            availableModes.Add((int)DisplayMode.Main);
+            availableModes.Add((int)DisplayModes.Disabled);
+            availableModes.Add((int)DisplayModes.Main);
         }
         // Display 1+ can be any mode
         else
@@ -665,7 +691,7 @@ public class ModSettingsMenu : MonoBehaviour
         errorMessage = string.Empty;
 
         // Count displays set to Main mode
-        int mainDisplayCount = pendingSettings.Count(x => x.Value.Mode == DisplayMode.Main);
+        int mainDisplayCount = pendingSettings.Count(x => x.Value.Mode == DisplayModes.Main);
 
         if (mainDisplayCount == 0)
         {

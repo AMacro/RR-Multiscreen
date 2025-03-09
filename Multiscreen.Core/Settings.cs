@@ -5,6 +5,7 @@ using Multiscreen.Util;
 using static UnityModManagerNet.UnityModManager;
 using Logger = Multiscreen.Util.Logger;
 using System.Collections.Generic;
+using UI.Common;
 
 namespace Multiscreen;
 
@@ -15,6 +16,8 @@ public class Settings : UnityModManager.ModSettings, IDrawable
     public static Action<Settings> OnSettingsUpdated;
 
     public int Version = 2;
+    public int LastRun = -1;
+    public bool UpdatePrompted = false;
 
     //V1.x Settings
     public bool FocusManager = true;
@@ -53,33 +56,8 @@ public class Settings : UnityModManager.ModSettings, IDrawable
         // yup
     }
 
-    public void UpgradeSettings()
-    {
-        //do upgrades
-    }
-
-
 }
 
-public enum DisplayMode
-{
-    Disabled,
-    Main,
-    Secondary,
-    Map,
-    CTC
-}
-
-public enum Windows
-{
-    CarCustomize,
-    CarEditor,
-    CarInspector,
-    CompanyWindow,
-    EngineRoster,
-    Equipment,
-
-}
 
 public interface ICloneable<T>
 {
@@ -87,11 +65,20 @@ public interface ICloneable<T>
 }
 public class DisplaySettings : ICloneable<DisplaySettings>
 {
+    public enum DisplayModes
+    {
+        Disabled,
+        Main,
+        ExtraWindows,
+        Map,
+        CTC
+    }
+
     private string bgColour = "#000000";
 
     public string Name = "None";
     public string DeviceId = "";
-    public DisplayMode Mode = DisplayMode.Disabled;
+    public DisplayModes Mode = DisplayModes.Disabled;
     public float Scale = 1f;
     public bool AllowWindows = true;
 
@@ -107,7 +94,6 @@ public class DisplaySettings : ICloneable<DisplaySettings>
             bgColour = value?.TrimStart('#') ?? "000000";
         }
     }
-
 
     public DisplaySettings Clone()
     {
@@ -131,9 +117,23 @@ public class DisplaySettings : ICloneable<DisplaySettings>
 
 public class WindowSettings
 {
+    public enum Positions
+    {
+        Default,
+        RestoreLast,
+        Custom,
+        LowerLeft,
+        LowerRight,
+        UpperLeft,
+        UpperRight,
+        Center,
+        CenterRight
+    }
+
     public string WindowName;
     public string DeviceId;
-    public Vector3 WindowPos;
-    public Vector3 WindowSize;
-    public bool Show;
+    public Positions PositionMode = Positions.RestoreLast;
+    public Vector2 Position;
+    public Vector2 Size;
+    public bool Shown;
 }

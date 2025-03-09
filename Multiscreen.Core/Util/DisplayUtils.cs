@@ -8,6 +8,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using Game;
 using System.Text;
+using static Multiscreen.DisplaySettings;
 
 namespace Multiscreen.Util;
 
@@ -130,7 +131,7 @@ public static class DisplayUtils
 
         // Find all settings for main display that are currently connected
         var connectedMainDisplaySettings = settings.Displays
-            .Where(d => d.Mode == DisplayMode.Main)
+            .Where(d => d.Mode == DisplayModes.Main)
             .Where(d => cachedMonitorInfo.Any(m => string.Equals(d.DeviceId, m.DeviceID, StringComparison.OrdinalIgnoreCase)))
             .ToList();
 
@@ -144,7 +145,7 @@ public static class DisplayUtils
             {
                 Name = displays[currentDisplayIndex].name,
                 DeviceId = currentMonitor.DeviceID,
-                Mode = DisplayMode.Main,
+                Mode = DisplayModes.Main,
                 Scale = Preferences.GraphicsCanvasScale,
                 AllowWindows = true
             };
@@ -189,7 +190,7 @@ public static class DisplayUtils
                 // Set other main displays to Secondary
                 foreach (var otherMain in connectedMainDisplaySettings.Where(d => d != mainDisplaySettings))
                 {
-                    otherMain.Mode = DisplayMode.Secondary;
+                    otherMain.Mode = DisplayModes.ExtraWindows;
                     Logger.LogInfo($"Changed '{otherMain.Name}' from Main to Secondary mode");
                 }
             }
@@ -206,7 +207,7 @@ public static class DisplayUtils
         //// Set other connected main displays to Secondary mode
         //foreach (var otherMain in connectedMainDisplaySettings.Where(d => d != mainDisplaySettings))
         //{
-        //    otherMain.Mode = DisplayMode.Secondary;
+        //    otherMain.Mode = DisplayModes.Secondary;
         //    Logger.LogInfo($"Changed '{otherMain.Name}' from Main to Secondary mode");
         //}
 
@@ -215,7 +216,7 @@ public static class DisplayUtils
         // Find all settings for other displays that are currently connected
         var connectedOtherDisplaySettings = 
             settings.Displays
-                .Where(d => d.Mode != DisplayMode.Disabled && d.Mode != DisplayMode.Main)
+                .Where(d => d.Mode != DisplayModes.Disabled && d.Mode != DisplayModes.Main)
                 .Where(d => cachedMonitorInfo.Any(m => string.Equals(d.DeviceId, m.DeviceID, StringComparison.OrdinalIgnoreCase)))
                 .ToList();
 

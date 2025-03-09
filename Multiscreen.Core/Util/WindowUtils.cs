@@ -11,8 +11,11 @@ namespace Multiscreen.Util;
 
 public static class WindowUtils
 {
+    // Window to Display Map
     private static readonly Dictionary<Window, int> WindowDisplayMap = [];
     private static readonly Dictionary<Window, TMP_Dropdown> WindowSelectorMap = [];
+
+    // Queue of windows waiting for initialisation
     private static readonly Queue<(Window window, int display)> pendingWindows = [];
 
     public static void SetDisplay(this Component targetWindow, int displayIndex)
