@@ -115,7 +115,7 @@ public class DisplaySettings : ICloneable<DisplaySettings>
     }
 }
 
-public class WindowSettings
+public class WindowSettings : ICloneable<WindowSettings>
 {
     public enum Positions
     {
@@ -136,4 +136,17 @@ public class WindowSettings
     public Vector2 Position;
     public Vector2 Size;
     public bool Shown;
+
+    public WindowSettings Clone()
+    {
+        return new WindowSettings
+        {
+            WindowName = this.WindowName,
+            DeviceId = this.DeviceId,
+            PositionMode = this.PositionMode,
+            Position = this.Position,
+            Size = this.Size,
+            Shown = this.Shown,
+        };
+    }
 }
