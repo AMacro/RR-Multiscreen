@@ -1,13 +1,17 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using UI.Common;
 using UnityEngine;
 
 namespace Multiscreen.Util;
 
 public static class PatchUtils
 {
+    static readonly string[] MANUAL_TYPES = ["EngineRosterPanel", "PlacerWindow"];
+
     public static Type[] ScanForInterface(string interfaceName)
     {
         var interfaceType = AppDomain.CurrentDomain.GetAssemblies()
@@ -60,5 +64,21 @@ public static class PatchUtils
         });
 
         return types;
+    }
+
+    public static IEnumerable<Type> GetWindowTypes()
+    {
+        //Manual additions due to inconsistency in game code
+        var manualTypes = AppDomain.CurrentDomain.GetAssemblies()
+                    .SelectMany(t => t.GetTypes())
+                    .Where(t => MANUAL_TYPES.Contains(t.Name));
+
+        var windowTypes = PatchUtils.ScanForInterface("IProgrammaticWindow")
+            .Union(PatchUtils.ScanForInterface("IBuilderWindow"))
+            .Union(PatchUtils.ScanForRequireComponent(typeof(Window)))
+            .Union(manualTypes)
+            .Distinct();
+
+        return windowTypes;
     }
 }

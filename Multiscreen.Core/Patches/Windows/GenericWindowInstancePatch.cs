@@ -4,8 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using UnityEngine;
-using UI.Common;
 using Logger = Multiscreen.Util.Logger;
 using System.Text;
 
@@ -21,7 +19,7 @@ public static class GenericWindowInstancePatch
         {
             Logger.LogInfo("Beginning TargetMethods() in GenericWindowInstancePatch");
 
-            var types = GenericWindowInstanceHelper.GetWindowTypesToPatch();
+            var types = PatchUtils.GetWindowTypes().Where(GenericWindowInstanceHelper.HasPropertyToPatch);
             if (types == null)
             {
                 Logger.LogInfo("GetWindowTypesToPatch() returned null");
@@ -93,43 +91,7 @@ public static class GenericWindowInstancePatch
 
 public static class GenericWindowInstanceHelper
 {
-
-    static readonly string[] MANUAL_TYPES = ["EngineRosterPanel", "PlacerWindow"];
-
-    public static IEnumerable<Type> GetWindowTypesToPatch()
-    {
-
-        //Manual additions due to inconsistency in game code
-        var manualTypes = AppDomain.CurrentDomain.GetAssemblies()
-                    .SelectMany(t => t.GetTypes())
-                    .Where(t => MANUAL_TYPES.Contains(t.Name));
-
-        var windowTypes = PatchUtils.ScanForInterface("IProgrammaticWindow")
-            .Union(PatchUtils.ScanForInterface("IBuilderWindow"))
-            .Union(PatchUtils.ScanForRequireComponent(typeof(Window)))
-            .Union(manualTypes)
-            .Distinct();
-
-        //if(manualTypes != null) 
-        //{
-        //    Logger.LogDebug(() =>
-        //    {
-        //        StringBuilder sb = new();
-
-        //        sb.AppendLine($"GetWindowTypesToPatch Found {manualTypes.Count()} methods to patch");
-
-        //        foreach (var method in manualTypes)
-        //            sb.AppendLine($"GetWindowTypesToPatch: {method.Name}.{method.Name}");
-
-        //        return sb.ToString();
-        //    });
-        //    windowTypes = windowTypes.Union(manualTypes).Distinct();
-        //}
-
-        return windowTypes.Where(HasPropertyToPatch);
-    }
-
-    private static bool HasPropertyToPatch(Type type)
+    public static bool HasPropertyToPatch(Type type)
     {
         var properties = type.GetProperties(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 

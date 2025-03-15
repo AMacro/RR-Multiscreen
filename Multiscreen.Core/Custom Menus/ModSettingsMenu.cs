@@ -13,7 +13,6 @@ using Multiscreen.Util;
 using Logger = Multiscreen.Util.Logger;
 using Multiscreen.Patches.Windows;
 using static Multiscreen.DisplaySettings;
-using MonoMod.Utils;
 
 namespace Multiscreen.CustomMenu;
 
@@ -102,7 +101,7 @@ public class ModSettingsMenu : MonoBehaviour
         windowPositionValues.AddRange(windowPositions.Select((String r, int i) => i));
 
 
-        names = GenericWindowInstanceHelper.GetWindowTypesToPatch()
+        names = PatchUtils.GetWindowTypes()
                         .Select(t => t.Name.Split('.').Last().Replace("Window", "").Replace("Panel", "").SplitCamelCase())
                         .OrderBy(t => t)
                         .ToList();
