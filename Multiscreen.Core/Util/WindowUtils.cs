@@ -201,6 +201,18 @@ public static class WindowUtils
 
     public static IEnumerable<Window> GetAllWindows()
     {
+        // Clean up destroyed windows first
+        var keysToRemove = WindowDisplayMap.Keys
+            .Where(window => window == null || window.gameObject == null)
+            .ToList();
+
+        foreach (var key in keysToRemove)
+        {
+            WindowDisplayMap.Remove(key);
+            if (WindowSelectorMap.ContainsKey(key))
+                WindowSelectorMap.Remove(key);
+        }
+
         return WindowDisplayMap.Keys;
     }
 
