@@ -225,4 +225,35 @@ public static class WindowUtils
             window.SetDisplay(display);
         }
     }
+
+    /// <summary>
+    /// Gets the user settings for a window's startup position
+    /// </summary>
+    /// <param name="WindowType">The type name of the window to retrieve the settings for</param>
+    /// <param name="position">The Vector2 position of the window</param>
+    /// <param name="size">A Vector2 representing the size of the window</param>
+    /// <returns>Display index if setting found, otherwise returns -1 for not found</returns>
+    public static int GetStartupPosition(string WindowType, out Vector2 position, out Vector2 size)
+    {
+        var windowSettings = Multiscreen.settings.Windows.FirstOrDefault(w => w.WindowName == WindowType);
+
+        if (windowSettings == null)
+        {
+            Logger.LogDebug($"GetStartupPosition() No settings found for {WindowType}");
+            size = Vector2.zero;
+            position = Vector2.zero;
+            return -1;
+        }
+
+        size = windowSettings.Size;
+        position = windowSettings.Position;
+
+        var deviceId = windowSettings.DeviceId;
+
+
+        if (!DisplayUtils.GetActiveDisplayFromDeviceId(deviceId, out int displayIndex))
+            return -1;
+
+        return displayIndex;
+    }
 }

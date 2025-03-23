@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using Logger = Multiscreen.Util.Logger;
 using System.Text;
+using UI.Common;
 
 namespace Multiscreen.Patches.Windows;
 
@@ -65,11 +66,27 @@ public static class GenericWindowStartPatch
         }
     }
 
-
-    public static void Postfix(MethodBase __originalMethod)
+    public static void Postfix(MethodBase __originalMethod, Window __instance)
     {
         var windowType = __originalMethod?.DeclaringType;
         Logger.LogDebug($"GenericWindowStartPatch.Postfix() {__originalMethod?.Name} called {windowType}");
+
+        if (windowType == null)
+            return;
+
+        var name = windowType.Name.Split('.').Last().Replace("Window", "").Replace("Panel", "").SplitCamelCase();
+
+        var displayIndex = WindowUtils.GetStartupPosition(name, out var position, out var size);
+
+        Logger.LogDebug($"{windowType.Name}.Postfix() Checking settings for {name}... Index: {displayIndex}, position: {position}, size: {size}");
+
+        if (displayIndex != -1)
+        {
+            //move window to correct display
+            __instance.SetDisplay(displayIndex);
+
+            //resize window
+        }
 
     }
 }

@@ -1009,4 +1009,33 @@ public static class DisplayUtils
 
         return false;
     }
+
+
+    public static bool GetActiveDisplayFromDeviceId(string deviceId, out int displayIndex)
+    {
+        displayIndex = -1;
+
+        Logger.LogDebug($"GetActiveDisplayFromDeviceId({deviceId})");
+
+        if (string.IsNullOrEmpty(deviceId))
+            return false;
+
+        // Look through active displays
+        for (int i = 0; i < ActiveDisplays.Count; i++)
+        {
+            var displayInfo = ActiveDisplays[i];
+
+            Logger.LogDebug($"GetActiveDisplayFromDeviceId({deviceId}) ActiveDisplays[{i}].Settings is null: {displayInfo?.Settings == null}, deviceId: {displayInfo?.Settings?.DeviceId}");
+            
+            if (displayInfo?.Settings != null &&
+                string.Equals(displayInfo.Settings.DeviceId, deviceId, StringComparison.OrdinalIgnoreCase))
+            {
+                displayIndex = i;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 }
