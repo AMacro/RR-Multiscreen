@@ -20,7 +20,7 @@ public static class WindowUtils
 
     public static void SetDisplay(this Component targetWindow, int displayIndex)
     {
-        if (targetWindow == null)
+        if (targetWindow == null || targetWindow.gameObject == null)
             return;
 
         var window = targetWindow.GetComponent<Window>();
@@ -73,6 +73,8 @@ public static class WindowUtils
         if (display == 0)
             return;
 
+        CleanupDestroyedWindows();
+
         foreach (var windowEntry in WindowDisplayMap.Where(w => w.Value == display))
         {
             var window = windowEntry.Key;
@@ -89,13 +91,15 @@ public static class WindowUtils
 
     public static int GetDisplayForWindow(this Window window)
     {
+        if (window == null)
+            return 0;
 
         //check fastpath first
         if (WindowDisplayMap.TryGetValue(window, out int display))
             return display;
 
         // Get parent container
-        var container = window.transform.parent.gameObject;
+        var container = window?.transform?.parent?.gameObject;
         display = DisplayUtils.GetDisplayIndexForContainer(container);
 
         return display;
@@ -104,6 +108,9 @@ public static class WindowUtils
     public static void SetupWindow(this Window window)
     {
         TMP_Dropdown selector;
+
+        if (window == null)
+            return;
 
         //capture this window
         if (!WindowDisplayMap.TryGetValue(window, out _))
@@ -115,22 +122,25 @@ public static class WindowUtils
         if (!WindowSelectorMap.TryGetValue(window, out _))
         {
             selector = CreateDropdown(window);
-            Logger.LogDebug($"SetupWindow({window.name}) selector is null {selector == null}");
+            Logger.LogDebug($"SetupWindow({window?.name}) selector is null {selector == null}");
             if (selector != null)
                 WindowSelectorMap[window] = selector;
             else
-                Logger.LogInfo($"Failed to create dropdown for window ({window.name})");
+                Logger.LogInfo($"Failed to create dropdown for window ({window?.name})");
         }
     }
 
     private static TMP_Dropdown CreateDropdown(Window window)
     {
+        if (window == null)
+            return null;
+
         //no point if there's only one display
         if (DisplayUtils.DisplayCount < 2)
             return null;
 
         //find the title bar
-        GameObject tb = window.transform.Find("Chrome/Title Bar").gameObject;
+        GameObject tb = window?.transform?.Find("Chrome/Title Bar")?.gameObject;
         if (tb == null)
             return null;
 
@@ -176,10 +186,8 @@ public static class WindowUtils
     {
         Logger.LogDebug("Moving all windows to main display");
 
-        var windowsToMove = WindowDisplayMap.Keys.ToList();
-
         // Use our existing window tracking
-        foreach (var window in windowsToMove)
+        foreach (var window in GetAllWindows())
         {
             try
             {
@@ -194,12 +202,21 @@ public static class WindowUtils
 
     public static IEnumerable<(Window window, int display)> GetWindowsOnDisplay(int displayIndex)
     {
+        CleanupDestroyedWindows();
+
         return WindowDisplayMap
             .Where(kvp => kvp.Value == displayIndex)
             .Select(kvp => (kvp.Key, kvp.Value));
     }
 
     public static IEnumerable<Window> GetAllWindows()
+    {
+        CleanupDestroyedWindows();
+
+        return WindowDisplayMap.Keys;
+    }
+
+    public static void CleanupDestroyedWindows()
     {
         // Clean up destroyed windows first
         var keysToRemove = WindowDisplayMap.Keys
@@ -212,8 +229,6 @@ public static class WindowUtils
             if (WindowSelectorMap.ContainsKey(key))
                 WindowSelectorMap.Remove(key);
         }
-
-        return WindowDisplayMap.Keys;
     }
 
     public static void ProcessQueuedWindows()
@@ -222,7 +237,7 @@ public static class WindowUtils
         while (pendingWindows.Count > 0)
         {
             var (window, display) = pendingWindows.Dequeue();
-            window.SetDisplay(display);
+            window?.SetDisplay(display);
         }
     }
 
