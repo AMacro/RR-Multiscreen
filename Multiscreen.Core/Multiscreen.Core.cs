@@ -16,6 +16,7 @@ public static class Multiscreen
     public static UnityModManager.ModEntry ModEntry;
     public static Settings settings;
     public static bool userPrefFullScr;
+    public static CoroutineRunner CoroutineRunner;
 
     [UsedImplicitly]
     internal static bool Load(UnityModManager.ModEntry modEntry)
@@ -31,20 +32,20 @@ public static class Multiscreen
         try
         {
             Logger.Log($"Game Version: {Application.version}");
-            //File.Delete(LOG_FILE);
 
             DisplayUtils.LogSystemDisplayConfiguration();
             DisplayUtils.LogUnityDisplayInfo();
+
+            var coroutineObj = new GameObject("Multiscreen CoroutineRunner");
+            GameObject.DontDestroyOnLoad(coroutineObj);
+            coroutineObj.SetActive(true);
+            CoroutineRunner = coroutineObj.AddComponent<CoroutineRunner>();
 
             //get user preference
             userPrefFullScr = Screen.fullScreen;
             Logger.Log($"User Preference 'Full screen': {userPrefFullScr}");
 
-            SceneManager.sceneLoaded += (Scene s, LoadSceneMode mode) =>
-            {
-                Logger.Log($"Scene Loaded! {s.name}");
-                Screen.fullScreen = (s.name == "MainMenu" && userPrefFullScr);
-            };
+            SceneManager.sceneLoaded += SceneLoaded;
 
             //Apply patches
             Logger.LogInfo("Patching...");
@@ -59,6 +60,7 @@ public static class Multiscreen
                 Logger.LogInfo("Less than 2 displays detected, nothing to do...");
                 return true;
             }
+
 
             DisplayUtils.InitialiseDisplays(settings);
 
@@ -123,4 +125,12 @@ public static class Multiscreen
 
         }
     }
+
+    private static void SceneLoaded(Scene s, LoadSceneMode mode)
+    {
+        Logger.Log($"Scene Loaded! {s.name}");
+        Screen.fullScreen = (s.name == "MainMenu" && userPrefFullScr);
+    }
 }
+
+public class CoroutineRunner : MonoBehaviour { }

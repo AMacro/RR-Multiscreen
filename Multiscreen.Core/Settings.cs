@@ -129,12 +129,19 @@ public class WindowSettings : ICloneable<WindowSettings>
         Center,
         CenterRight
     }
+    public enum Sizing
+    {
+        Default,
+        RestoreLast,
+        Custom
+    }
 
     public string WindowName;
     public string DeviceId;
     public Positions PositionMode = Positions.RestoreLast;
+    public Sizing SizeMode = Sizing.RestoreLast;
     public Vector2 Position;
-    public Vector2 Size;
+    public Vector2Int Size;
     public bool Shown;
 
     public WindowSettings Clone()

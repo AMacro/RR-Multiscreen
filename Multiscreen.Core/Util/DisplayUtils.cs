@@ -19,6 +19,8 @@ public struct RECT
     public int Top;
     public int Right;
     public int Bottom;
+    public int Width => Right - Left;
+    public int Height => Bottom - Top;
 }
 
 public class MonitorInfo
@@ -102,9 +104,6 @@ public static class DisplayUtils
     public static bool FocusManagerActive { get; private set; }
     public static int DisplayCount => ActiveDisplays.Count;
     public static bool Initialised { get; private set; }
-
-
-    private class CoroutineRunner : MonoBehaviour { }
 
     public static void InitialiseDisplays(Settings settings)
     {
@@ -255,13 +254,10 @@ public static class DisplayUtils
             //Screen.MoveMainWindowTo(displays[logicDisplay], new Vector2Int(0, 0));
         }
 
-        var coroutineObj = new GameObject("WaitforModals");
-        GameObject.DontDestroyOnLoad(coroutineObj);
-        coroutineObj.SetActive(true);
-        coroutineObj.AddComponent<CoroutineRunner>().StartCoroutine(WaitForModals(dispInfo, coroutineObj));
+        Multiscreen.CoroutineRunner.StartCoroutine(WaitForModals(dispInfo));
     }
 
-    private static IEnumerator WaitForModals(ActiveDisplayInfo info, GameObject coroutineObj)
+    private static IEnumerator WaitForModals(ActiveDisplayInfo info)
     {
         GameObject modalContainer = null;
 
@@ -271,8 +267,6 @@ public static class DisplayUtils
         Logger.LogInfo("WaitForModals() Found Modals container");
 
         info.DockContainer = modalContainer;
-
-        GameObject.Destroy(coroutineObj);
 
         Initialised = true;
         WindowUtils.ProcessQueuedWindows();
@@ -328,13 +322,8 @@ public static class DisplayUtils
 
         if (targetDisplayIndex >= 0)
         {
-            // Create a coroutine handler object that survives scene changes
-            var coroutineObj = new GameObject("DisplayMoveHandler");
-            GameObject.DontDestroyOnLoad(coroutineObj);
-            var runner = coroutineObj.AddComponent<CoroutineRunner>();
-
             // Start the move coroutine
-            runner.StartCoroutine(MoveDisplayAndRestart(displays[targetDisplayIndex], coroutineObj));
+            Multiscreen.CoroutineRunner.StartCoroutine(MoveDisplayAndRestart(displays[targetDisplayIndex]));
         }
         else
         {
@@ -342,7 +331,7 @@ public static class DisplayUtils
         }
     }
 
-    private static IEnumerator MoveDisplayAndRestart(DisplayInfo targetDisplay, GameObject coroutineObj)
+    private static IEnumerator MoveDisplayAndRestart(DisplayInfo targetDisplay)
     {
         Logger.LogInfo($"Moving game window to display: {targetDisplay.name} ({targetDisplay.width}x{targetDisplay.height})");
 
@@ -380,8 +369,6 @@ public static class DisplayUtils
 
         Logger.LogInfo("Display move complete, preparing to restart");
         yield return new WaitForSeconds(1.0f);
-
-        GameObject.Destroy(coroutineObj);
 
         RestartApplication();
     }

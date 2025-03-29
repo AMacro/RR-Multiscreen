@@ -6,6 +6,7 @@ using UI.Common;
 using UnityEngine;
 using System;
 using System.Linq;
+using System.Collections;
 
 namespace Multiscreen.Util;
 
@@ -16,7 +17,7 @@ public static class WindowUtils
     private static readonly Dictionary<Window, TMP_Dropdown> WindowSelectorMap = [];
 
     // Queue of windows waiting for initialisation
-    private static readonly Queue<(Window window, int display)> pendingWindows = [];
+    private static readonly Queue<(Window window, int display)> pendingWindowMoves = [];
 
     public static void SetDisplay(this Component targetWindow, int displayIndex)
     {
@@ -33,7 +34,7 @@ public static class WindowUtils
         if (!DisplayUtils.Initialised)
         {
             Logger.LogDebug($"SetDisplay: Displays not initialized yet, queueing {window?.name} for display {displayIndex}");
-            pendingWindows.Enqueue((window, displayIndex));
+            pendingWindowMoves.Enqueue((window, displayIndex));
             return;
         }
 
@@ -186,8 +187,11 @@ public static class WindowUtils
     {
         Logger.LogDebug("Moving all windows to main display");
 
+        var windowsToMove = GetAllWindows().ToList();  // Create a copy of the keys
+
+
         // Use our existing window tracking
-        foreach (var window in GetAllWindows())
+        foreach (var window in windowsToMove)
         {
             try
             {
@@ -233,42 +237,121 @@ public static class WindowUtils
 
     public static void ProcessQueuedWindows()
     {
-        Logger.LogInfo($"Processing {pendingWindows.Count} queued windows");
-        while (pendingWindows.Count > 0)
+        Logger.LogInfo($"Processing {pendingWindowMoves.Count} queued windows");
+        while (pendingWindowMoves.Count > 0)
         {
-            var (window, display) = pendingWindows.Dequeue();
+            var (window, display) = pendingWindowMoves.Dequeue();
             window?.SetDisplay(display);
         }
     }
 
     /// <summary>
-    /// Gets the user settings for a window's startup position
+    /// Gets the settings for a window
     /// </summary>
-    /// <param name="WindowType">The type name of the window to retrieve the settings for</param>
-    /// <param name="position">The Vector2 position of the window</param>
-    /// <param name="size">A Vector2 representing the size of the window</param>
-    /// <returns>Display index if setting found, otherwise returns -1 for not found</returns>
-    public static int GetStartupPosition(string WindowType, out Vector2 position, out Vector2 size)
+    /// <param name="windowType">The type name of the window to retrieve the settings for</param>
+    /// <param name="windowSettings">The settings defined for the window</param>
+    /// <returns>True if the settings were found</returns>
+    public static bool GetWindowSettings(string windowType, out WindowSettings windowSettings)
     {
-        var windowSettings = Multiscreen.settings.Windows.FirstOrDefault(w => w.WindowName == WindowType);
-
+        windowSettings = Multiscreen.settings.Windows.FirstOrDefault(w => w.WindowName == windowType);
+         
         if (windowSettings == null)
+            Logger.LogDebug($"GetStartupPosition() No settings found for {windowType}");
+
+        return windowSettings != null;
+    }
+
+    public static void ApplyStartupPosition(Window window, string windowType)
+    {
+        Multiscreen.CoroutineRunner.StartCoroutine(ApplyStartupPositionCoroutine(window, windowType));
+    }
+    
+    private static IEnumerator ApplyStartupPositionCoroutine(Window window, string windowType)
+    {
+        var name = windowType.Split('.').Last().Replace("Window", "").Replace("Panel", "").SplitCamelCase();
+
+        // Get user defined settings for the window
+        if (!GetWindowSettings(name, out var windowSettings))
         {
-            Logger.LogDebug($"GetStartupPosition() No settings found for {WindowType}");
-            size = Vector2.zero;
-            position = Vector2.zero;
-            return -1;
+            Logger.Log($"Settings not found for {windowType}");
+            yield break;
         }
 
-        size = windowSettings.Size;
-        position = windowSettings.Position;
+        Logger.LogDebug($"{windowType}.Postfix() Waiting for load...");
+        yield return new WaitUntil(
+            () => 
+            {
+                return DisplayUtils.Initialised
+                    && window != null
+                    && window?.gameObject != null
+                    && window?.RectTransform != null
+                    && window?.contentRectTransform != null;
+            }
+        );
 
-        var deviceId = windowSettings.DeviceId;
+        Logger.LogDebug($"{windowType}.Postfix() Loaded");
+
+        if (!DisplayUtils.Initialised || window == null || window?.RectTransform == null || window?.gameObject == null) 
+        {
+            Logger.LogDebug($"{windowType}.Postfix()  Waiting for load: DisplayUtils.Initialised: {DisplayUtils.Initialised}, window: {window != null}, RectTransform: {window?.RectTransform != null}, gameObject: {window?.gameObject != null}");
+            yield break;
+        }
+
+        Logger.LogDebug($"{windowType}.Postfix() Settings: DeviceId: {windowSettings.DeviceId}, Position: {windowSettings.Position}, Size: {windowSettings.Size}, Position Mode: {windowSettings.PositionMode}, Size Mode: {windowSettings.SizeMode}");
+
+        // Check if display nominated is active and return index
+        if (!DisplayUtils.GetActiveDisplayFromDeviceId(windowSettings.DeviceId, out int displayIndex) || displayIndex < 0)
+            displayIndex = 0;
 
 
-        if (!DisplayUtils.GetActiveDisplayFromDeviceId(deviceId, out int displayIndex))
-            return -1;
+        // Get scaling factor and screen size
+        var scale = DisplayUtils.GetDisplaySettings(displayIndex).Scale;
+        var screenSize = DisplayUtils.GetWindowsMonitorForUnityDisplay(displayIndex).Bounds;
 
-        return displayIndex;
+        Logger.LogDebug($"{windowType}.Postfix() Index: {displayIndex}, scale: {scale}, screenSize: {screenSize.Width}x{screenSize.Height}");
+
+        // Move window to correct display
+        if (displayIndex > 0)
+            window.SetDisplay(displayIndex);
+
+        Logger.LogDebug($"{windowType}.Postfix() IsResizable: {window._resizable}");
+
+        // Handle sizing
+        if (window._resizable && windowSettings.SizeMode != WindowSettings.Sizing.Default)
+        {
+            var windowRectTransform = window.RectTransform; //overall window
+            var contentRectTransform = window.contentRectTransform; //content only
+            Vector2 currentContentSize = contentRectTransform.rect.size - windowRectTransform.rect.size;
+
+            var minSize = window.resizer.minSize;
+            var maxSize = window.resizer.maxSize;
+
+            Vector2Int newContentSize = new Vector2Int
+            (
+                (int)Mathf.Clamp(windowSettings.Size.x, minSize.x, maxSize.x),
+                (int)Mathf.Clamp(windowSettings.Size.y, minSize.y, maxSize.y)
+            );
+
+            Vector2 newWindowSize = newContentSize - currentContentSize;
+
+            Logger.LogDebug($"{windowType}.Postfix() currentContentSize: {currentContentSize}, minSize:{minSize}, maxSize: {maxSize}, newContentSize: {newContentSize}, curentWindowSize: {windowRectTransform.rect.size}, newWindowSize: {newWindowSize}");
+
+            newWindowSize.x = Mathf.Min(newWindowSize.x, (float)screenSize.Width / scale);
+            newWindowSize.y = Mathf.Min(newWindowSize.y, (float)screenSize.Height / scale);
+
+            Logger.LogDebug($"{windowType}.Postfix() scaledWindowSize: {newWindowSize}");
+
+            windowRectTransform.sizeDelta = newWindowSize;
+        }
+
+        //todo: handle different position modes
+
+        //calculate scaled position
+        var scaledPosition = new Vector2(
+            windowSettings.Position.x * (float)screenSize.Width * scale,
+            windowSettings.Position.y * (float)screenSize.Height * scale
+            );
+
+        window.SetPositionRestoring(scaledPosition);
     }
 }
