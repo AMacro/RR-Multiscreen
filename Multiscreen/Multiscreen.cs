@@ -22,16 +22,16 @@ public static class MultiscreenLoader
         string coreVer = CORE_NAME;
 
         WriteLog($"Game Version: {Application.version}");
-        switch (Application.version.Substring(0,6))
+        string shortVersion = Application.version.Substring(0, 6);
+        if (Version.TryParse(shortVersion, out Version parsedVersion) && parsedVersion >= new Version("2024.6"))
         {
-            case "2024.6":
-                coreVer += "Beta";
-                break;
-
-            default:
-                coreVer += "Main";
-                break;
+            coreVer += "Beta";
         }
+        else
+        {
+            coreVer += "Main";
+        }
+
 
         WriteLog($"Selected Core Version: {coreVer}");
 
