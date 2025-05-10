@@ -75,7 +75,7 @@ public static class SettingsBuilderPatch
             });
 
             builder.Spacer(2f);
-
+            Logger.LogDebug($"BuildTabGraphics() Colour");
             builder.AddColorDropdown(Multiscreen.settings.bgColour, colour =>
             {
                 UnityEngine.Color temp = Multiscreen.background.color;
@@ -89,11 +89,12 @@ public static class SettingsBuilderPatch
                 {
                     Multiscreen.background.color = temp;
                 }
-                //Logger.LogInfo(colour);
+                Logger.LogDebug(colour);
             }
             ).Width(60f);
         }));
 
+        Logger.LogDebug($"BuildTabGraphics() Positioning");
         //position beneath vanilla slider
         if (sibling != null)
         {
@@ -101,18 +102,22 @@ public static class SettingsBuilderPatch
             slider.RectTransform.SetSiblingIndex(sibling.GetSiblingIndex()+1);
             bgSet.RectTransform.SetSiblingIndex(slider.RectTransform.GetSiblingIndex() + 1);
         }
-        
 
+        Logger.LogDebug($"BuildTabGraphics() Preferences");
         //expand window if using preferences in game
         if (PreferencesWindow.Instance != null)
         {
-
+            Logger.LogDebug($"BuildTabGraphics() Preferences !null");
             Vector2 size = PreferencesWindow.Instance._window.GetContentSize();
             Logger.LogDebug($"Window Size: {size} Slider Size: {slider.RectTransform.transform.GetComponent<RectTransform>().rect.height}");
             size.y += slider.RectTransform.GetComponent<LayoutElement>().minHeight;// slider.RectTransform.rect.height;
   
             PreferencesWindow.Instance._window.SetContentSize(size);
             Logger.LogDebug($"Window Size: {size} Slider Size: {slider.RectTransform.parent}");
+        }
+        else
+        {
+            Logger.LogDebug($"BuildTabGraphics() Preferences is null");
         }
     }
 

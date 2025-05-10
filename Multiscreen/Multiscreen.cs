@@ -24,9 +24,9 @@ public static class MultiscreenLoader
         WriteLog($"Game Version: {Application.version}");
         switch (Application.version.Substring(0,6))
         {
-            case "2024.6":
-                coreVer += "Beta";
-                break;
+            //case "2024.6":
+            //    coreVer += "Beta";
+            //    break;
 
             default:
                 coreVer += "Main";

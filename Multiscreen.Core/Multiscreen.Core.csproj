@@ -5,9 +5,9 @@
     <LangVersion>latest</LangVersion>
     <RootNamespace>Multiscreen</RootNamespace>
     <SignAssembly>False</SignAssembly>
-    <FileVersion>1.6.2.0</FileVersion>
+    <FileVersion>1.6.3.0</FileVersion>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <Configurations>Debug;Release;MainBuild;BetaBuild</Configurations>
+    <Configurations>Debug;Release;MainBuild<!--;BetaBuild--></Configurations>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='MainBuild|AnyCPU'">
@@ -16,12 +16,13 @@
     <AssemblyName>Multiscreen.Core.Main</AssemblyName>
   </PropertyGroup>
 
+  <!--
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='BetaBuild|AnyCPU'">
     <DefineConstants>TRACE;BETA_VERSION</DefineConstants>
     <OutputPath>bin\BetaBuild\</OutputPath>
     <AssemblyName>Multiscreen.Core.Beta</AssemblyName>
   </PropertyGroup>
-
+-->
   <ItemGroup>
     <PackageReference Include="Krafs.Publicizer" Version="2.2.1" />
     <PackageReference Include="UnityModManager" Version="0.27.5" />
@@ -35,14 +36,14 @@
   </ItemGroup> 
   <ItemGroup Condition="'$(Configuration)'=='MainBuild'">
     <Reference Include="Assembly-CSharp">
-      <HintPath>$(InstallDir)\Railroader_Data\Managed_Main\Assembly-CSharp.dll</HintPath>
+      <HintPath>$(InstallDir)\Railroader_Data\Managed\Assembly-CSharp.dll</HintPath>
     </Reference>
   </ItemGroup>
-  <ItemGroup Condition="'$(Configuration)'=='BetaBuild'">
+  <!--ItemGroup Condition="'$(Configuration)'=='BetaBuild'">
     <Reference Include="Assembly-CSharp">
       <HintPath>$(InstallDir)\Railroader_Data\Managed_Beta\Assembly-CSharp.dll</HintPath>
     </Reference>
-  </ItemGroup>
+  </ItemGroup-->
 
   <!-- Mod Loader -->
   <ItemGroup>
@@ -94,8 +95,8 @@
     <Message Text="Building Main version..." Importance="high" />
     <MSBuild Projects="$(MSBuildProjectFile)" Properties="Configuration=MainBuild" Targets="Build" />
 
-    <Message Text="Building Beta version..." Importance="high" />
-    <MSBuild Projects="$(MSBuildProjectFile)" Properties="Configuration=BetaBuild" Targets="Build" />
+    <!--Message Text="Building Beta version..." Importance="high" />
+    <MSBuild Projects="$(MSBuildProjectFile)" Properties="Configuration=BetaBuild" Targets="Build" /-->
   </Target>
 
   <Target Name="SignAssemblies" AfterTargets="BuildBothVersions" Condition="'$(Configuration)'=='Release' AND '$(Cert-Thumb)' != ''"> 
@@ -105,7 +106,7 @@
   <Target Name="CopyBuildOutputs" AfterTargets="BuildBothVersions" Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='Release'">
     <ItemGroup>
       <CoreBuildOutputs Include="$(ProjectDir)bin\MainBuild\net48\Multiscreen.Core.Main.dll" />
-      <CoreBuildOutputs Include="$(ProjectDir)bin\BetaBuild\net48\Multiscreen.Core.Beta.dll" />
+      <!--CoreBuildOutputs Include="$(ProjectDir)bin\BetaBuild\net48\Multiscreen.Core.Beta.dll" /-->
     </ItemGroup>
     <Message Text="Copying files to: $(ProjectDir)..\build\" Importance="high" />
     <Copy SourceFiles="@(CoreBuildOutputs)" DestinationFolder="$(ProjectDir)..\build\" />

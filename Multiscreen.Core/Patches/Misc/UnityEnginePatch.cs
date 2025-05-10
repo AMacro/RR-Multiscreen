@@ -1,11 +1,8 @@
 ﻿using HarmonyLib;
-using System;
 using UnityEngine;
 using UnityEngine.UI;
-using Logger = Multiscreen.Util.Logger;
 
 namespace Multiscreen.Patches.Misc;
-#if BETA_VERSION
 
 [HarmonyPatch(typeof(MultipleDisplayUtilities))]
 public class MultipleDisplayUtilitiesPatch
@@ -24,4 +21,3 @@ public class MultipleDisplayUtilitiesPatch
 
     }
 }
-#endif
