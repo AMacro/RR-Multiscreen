@@ -1,4 +1,4 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using Multiscreen.Util;
 using System;
 using System.Collections.Generic;
@@ -72,8 +72,9 @@ public static class GenericWindowInstanceHelper
     {
 
         //Manual additions due to inconsistency in game code
-        var manualTypes = AppDomain.CurrentDomain.GetAssemblies()
-                    .SelectMany(t => t.GetTypes())
+        //Using PatchUtils.GetAllTypesSafe() instead of raw GetTypes() to handle
+        //ReflectionTypeLoadException after Unity engine updates
+        var manualTypes = PatchUtils.GetAllTypesSafe()
                     .Where(t => MANUAL_TYPES.Contains(t.Name));
 
         var windowTypes = PatchUtils.ScanForInterface("IProgrammaticWindow")
@@ -82,49 +83,48 @@ public static class GenericWindowInstanceHelper
             .Union(manualTypes)
             .Distinct();
 
-        //if(manualTypes != null) 
-        //{
-        //    Logger.LogDebug(() =>
-        //    {
-        //        StringBuilder sb = new();
-
-        //        sb.AppendLine($"GetWindowTypesToPatch Found {manualTypes.Count()} methods to patch");
-
-        //        foreach (var method in manualTypes)
-        //            sb.AppendLine($"GetWindowTypesToPatch: {method.Name}.{method.Name}");
-
-        //        return sb.ToString();
-        //    });
-        //    windowTypes = windowTypes.Union(manualTypes).Distinct();
-        //}
-
         return windowTypes.Where(HasPropertyToPatch);
     }
 
     private static bool HasPropertyToPatch(Type type)
     {
-        var properties = type.GetProperties(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+        try
+        {
+            var properties = type.GetProperties(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 
-        var hasShared = properties.Any(p => p.Name.Equals("shared", StringComparison.OrdinalIgnoreCase));
-        var hasInstance = properties.Any(p => p.Name.Equals("instance", StringComparison.OrdinalIgnoreCase));
+            var hasShared = properties.Any(p => p.Name.Equals("shared", StringComparison.OrdinalIgnoreCase));
+            var hasInstance = properties.Any(p => p.Name.Equals("instance", StringComparison.OrdinalIgnoreCase));
 
-        Logger.LogDebug($"HasPropertyToPatch({type.Name}) {hasShared || hasInstance}");
-        return hasShared || hasInstance;
+            Logger.LogDebug($"HasPropertyToPatch({type.Name}) {hasShared || hasInstance}");
+            return hasShared || hasInstance;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogDebug($"Error checking properties on type {type.Name}: {ex.Message}");
+            return false;
+        }
     }
 
     public static IEnumerable<MethodBase> GetMethodsToPatch(Type type)
     {
         var methods = new List<MethodBase>();
 
-        var properties = type.GetProperties(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+        try
+        {
+            var properties = type.GetProperties(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 
-        var sharedProp = properties.FirstOrDefault(p => p.Name.Equals("shared", StringComparison.OrdinalIgnoreCase));
-        if (sharedProp?.GetGetMethod(true) != null)  // true to get non-public accessor
-            methods.Add(sharedProp.GetGetMethod(true));
+            var sharedProp = properties.FirstOrDefault(p => p.Name.Equals("shared", StringComparison.OrdinalIgnoreCase));
+            if (sharedProp?.GetGetMethod(true) != null)  // true to get non-public accessor
+                methods.Add(sharedProp.GetGetMethod(true));
 
-        var instanceProp = properties.FirstOrDefault(p => p.Name.Equals("instance", StringComparison.OrdinalIgnoreCase));
-        if (instanceProp?.GetGetMethod(true) != null)  // true to get non-public accessor
-            methods.Add(instanceProp.GetGetMethod(true));
+            var instanceProp = properties.FirstOrDefault(p => p.Name.Equals("instance", StringComparison.OrdinalIgnoreCase));
+            if (instanceProp?.GetGetMethod(true) != null)  // true to get non-public accessor
+                methods.Add(instanceProp.GetGetMethod(true));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogDebug($"Error getting methods to patch on type {type.Name}: {ex.Message}");
+        }
 
         return methods; 
     }
