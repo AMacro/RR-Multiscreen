@@ -39,7 +39,7 @@ public static class GenericWindowInstancePatch
     {
 
         var windowType = __originalMethod.DeclaringType;
-        Logger.LogDebug($"Custom Instance/Shared getter called {windowType}");
+        Logger.LogVerbose($"Custom Instance/Shared getter called {windowType}");
 
         GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK);
 
@@ -50,14 +50,14 @@ public static class GenericWindowInstancePatch
                 var component = child.GetComponent(windowType);
                 if (component != null)
                 {
-                    Logger.LogDebug($"Custom Instance/Shared getter called {windowType} Found!");
+                    Logger.LogVerbose($"Custom Instance/Shared getter called {windowType} Found!");
                     __result = component;
                     return false;
                 }
             }
         }
 
-        Logger.LogDebug($"Custom Instance/Shared getter called {windowType} Not found, passing to default!");
+        Logger.LogVerbose($"Custom Instance/Shared getter called {windowType} Not found, passing to default!");
 
         return true;
     }

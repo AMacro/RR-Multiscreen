@@ -25,6 +25,10 @@ public class DisplayFocusManager : MonoBehaviour
     [DllImport("user32.dll")]
     private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
 
+
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+
     [DllImport("kernel32.dll")]
     private static extern uint GetCurrentProcessId();
 
@@ -185,7 +189,12 @@ public class DisplayFocusManager : MonoBehaviour
                     StringBuilder title = new StringBuilder(MAX_WINDOW_TITLE_LENGTH);
                     GetWindowText(currentWindow, title, MAX_WINDOW_TITLE_LENGTH);
 
-                    return $"IsWindowTopMostOnDisplay() Checking window: {currentWindow}, Title: \"{title}\", Monitor: {MonitorFromWindow(currentWindow, MONITOR_DEFAULTTONEAREST)}, Target Monitor: {monitor}";
+                    StringBuilder strClass = new StringBuilder(MAX_WINDOW_TITLE_LENGTH);
+                    GetClassName(currentWindow, strClass, MAX_WINDOW_TITLE_LENGTH);
+
+                    GetWindowThreadProcessId(currentWindow, out uint windowPID);
+
+                    return $"IsWindowTopMostOnDisplay() Checking window: {currentWindow}, Title: \"{title}\", Class: \"{strClass}\", Monitor: {MonitorFromWindow(currentWindow, MONITOR_DEFAULTTONEAREST)}, Target Monitor: {monitor}, windowPid: {windowPID}";
 
                 }); 
 
