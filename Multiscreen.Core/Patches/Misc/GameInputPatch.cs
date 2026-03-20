@@ -1,4 +1,4 @@
-﻿using HarmonyLib;
+using HarmonyLib;
 using UnityEngine;
 using UI;
 using UI.Common;
@@ -18,7 +18,23 @@ public class GameInputPatch
         //Multidisplay aware mousePosition
         Vector3 vector = Display.RelativeMouseAt(Input.mousePosition);
 
-        bool bounds = 0f <= vector.x && 0f <= vector.y && Screen.width >= vector.x && Screen.height >= vector.y;
+        //Use the correct display dimensions based on which display the mouse is on
+        int displayIndex = (int)vector.z;
+        float displayWidth;
+        float displayHeight;
+
+        if (displayIndex > 0 && displayIndex < Display.displays.Length)
+        {
+            displayWidth = Display.displays[displayIndex].renderingWidth;
+            displayHeight = Display.displays[displayIndex].renderingHeight;
+        }
+        else
+        {
+            displayWidth = Screen.width;
+            displayHeight = Screen.height;
+        }
+
+        bool bounds = 0f <= vector.x && 0f <= vector.y && displayWidth >= vector.x && displayHeight >= vector.y;
         Window hit = WindowManager.Shared.HitTest(vector);
 
         //Multiscreen.Log($"IsMouseOverGameWindow({window?.name}): __result: {__result}\r\n\tBounds:{bounds}\r\n\thit: {hit?.name} :: {hit == window}");
