@@ -17,9 +17,15 @@ Railroader 0.6 loads mods itself; Unity Mod Manager is not used (and should be r
 1. In Railroader, open Preferences and turn on **Allow Unsafe DLL Mods** (Multiscreen is a DLL mod), then restart the game.
 2. Download the latest Multiscreen release and unzip it into the game's `Mods` folder, so you have `Railroader/Mods/Multiscreen/` containing `Info.json`, `Multiscreen.dll`, `0Harmony.dll`, `LICENSE`, `NOTICE` and `LICENSE-Harmony.txt`. Install only one Multiscreen build: the game refuses a second assembly named `Multiscreen` in the same session.
 3. Ensure your second screen is connected and working in extended mode (on Windows: Windows Key + P > Extend).
-4. Start Railroader and enable Multiscreen in the main menu's Mods screen. It only changes your own screens, and other players in a multiplayer session don't need it.
+4. Turn it on in `Preferences.json`. Multiscreen is a **client** mod: it only changes your own screens, so the game never records it in a save and never asks the host or other players for it. Railroader 0.6.2's Mods screen doesn't list client mods, so they're switched on in the game's preferences file instead. With the game closed, open `Documents/Railroader/Preferences.json` (on Linux/Proton, the same path inside the game's prefix), find `"clientMods"` and add this entry to its list (if there's no `clientMods` yet, add `"clientMods": [ ... ]` with just this entry):
 
-It is an optional mod, so the game records it in each save's mod list and the save (or, when you join, the host's game) decides: a save or host whose list doesn't include Multiscreen turns it off for that session, while a player who joins without it installed isn't asked for it.
+   ```json
+   {"identifier": "macka/multiscreen", "version": "2.0.1", "enabled": true, "scope": 2}
+   ```
+
+   Keep the version in step with the installed Multiscreen when you update it. Then start Railroader.
+
+Because it's a client mod, it works whether or not the host (or anyone else) runs it, in single player and in multiplayer alike.
 
 If it is working, the second screen shows a sky background (or your solid colour) as soon as the game starts, and the map and company windows open there. Multiscreen logs to the game's `Player.log` under the identifier in its `Info.json`; at startup it reports the displays it found, whether its window lookup self-test passed, and how many feature patches applied.
 

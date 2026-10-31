@@ -1,11 +1,11 @@
 {
   "identifier": "macka/multiscreen",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "name": "Multiscreen",
   "author": "Macka",
   "url": "https://github.com/AMacro/RR-Multiscreen",
   "license": "Apache-2.0",
-  "scope": "optional",
+  "scope": "client",
   "assemblies": [
     "Multiscreen.dll"
   ],
