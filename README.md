@@ -25,6 +25,8 @@ Railroader 0.6 loads mods itself; Unity Mod Manager is not used (and should be r
 
    Keep the version in step with the installed Multiscreen when you update it. Then start Railroader.
 
+   It will **not** appear in the Mods screen (0.6.2 doesn't list client mods there). You'll know it loaded when a **Multiscreen** button shows on the main menu.
+
 Because it's a client mod, it works whether or not the host (or anyone else) runs it, in single player and in multiplayer alike.
 
 If it is working, the second screen shows a sky background (or your solid colour) as soon as the game starts, and the map and company windows open there. Multiscreen logs to the game's `Player.log` under the identifier in its `Info.json`; at startup it reports the displays it found, whether its window lookup self-test passed, and how many feature patches applied.
