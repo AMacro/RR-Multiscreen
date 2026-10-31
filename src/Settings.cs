@@ -72,7 +72,9 @@ public class Settings
         if (gameDisplay == secondDisplay)
             secondDisplay = -1;
 
-        secondDisplayScale = Mathf.Clamp(secondDisplayScale, 0.2f, 2f);
+        // Mathf.Clamp passes NaN through, and a hand-edited NaN or Infinity would make undocked windows vanish
+        if (float.IsNaN(secondDisplayScale) || float.IsInfinity(secondDisplayScale) || secondDisplayScale < 0.2f || secondDisplayScale > 2f)
+            secondDisplayScale = 1f;
 
         if (string.IsNullOrEmpty(bgColour))
             bgColour = "000000";

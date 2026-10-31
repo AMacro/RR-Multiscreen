@@ -54,4 +54,18 @@
   <Target Name="SignAssembly" AfterTargets="Build" Condition="'$(Configuration)'=='Release' AND '$(Cert-Thumb)' != '' AND '$(OS)'=='Windows_NT'">
     <Exec Command="&quot;$(SignToolPath)SignTool.exe&quot; sign /sha1 $(Cert-Thumb) /fd SHA256 /t http://timestamp.sectigo.com &quot;$(TargetPath)&quot;" />
   </Target>
+
+  <!-- Release builds also assemble bin/Release/Multiscreen/, the folder that goes into the game's Mods folder.
+       It carries the licences: Apache-2.0 LICENSE and NOTICE (sections 4(a), 4(d)) and Harmony's MIT notice. -->
+  <Target Name="StageRelease" AfterTargets="Build;SignAssembly" Condition="'$(Configuration)'=='Release'">
+    <ItemGroup>
+      <ReleaseFile Include="$(TargetPath)" />
+      <ReleaseFile Include="$(OutDir)0Harmony.dll" />
+      <ReleaseFile Include="Info.json;LICENSE;NOTICE;third-party/LICENSE-Harmony.txt" />
+    </ItemGroup>
+    <RemoveDir Directories="$(OutDir)Multiscreen" />
+    <Copy SourceFiles="@(ReleaseFile)" DestinationFolder="$(OutDir)Multiscreen" />
+    <Error Condition="!Exists('$(OutDir)Multiscreen/%(ReleaseFile.Filename)%(ReleaseFile.Extension)')" Text="Release folder is missing %(ReleaseFile.Filename)%(ReleaseFile.Extension)" />
+    <Message Importance="high" Text="Release folder: $(OutDir)Multiscreen" />
+  </Target>
 </Project>

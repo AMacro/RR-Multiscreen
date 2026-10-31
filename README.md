@@ -1,7 +1,7 @@
 
 # Railroader Multiscreen Mod
 
-By **Macka** ([AMacro](https://github.com/AMacro/RR-Multiscreen)). Version 2.0 is a port to the Railroader 0.6 mod loader (game 0.6.2 and later); see [NOTICE](NOTICE). Versions 1.x, for the pre-0.6 game with Unity Mod Manager, remain on the original repository.
+Multiscreen was created by **Macka** ([AMacro/RR-Multiscreen](https://github.com/AMacro/RR-Multiscreen)). This branch is a modified version that ports it to the Railroader 0.6 mod loader (game 0.6.2 and later), offered for inclusion upstream; until Macka publishes it, it is not an official Macka release. See [NOTICE](NOTICE). Versions 1.x, for the pre-0.6 game with Unity Mod Manager, remain on the original repository.
 
 This mod expands Railroader from single to dual screen, allowing you to move game windows (map, company, station, car inspector, etc.) off the main game screen to a second screen. 
 
@@ -15,11 +15,13 @@ This mod expands Railroader from single to dual screen, allowing you to move gam
 Railroader 0.6 loads mods itself; Unity Mod Manager is not used (and should be removed from the game folder if it is still there from an older version).
 
 1. In Railroader, open Preferences and turn on **Allow Unsafe DLL Mods** (Multiscreen is a DLL mod), then restart the game.
-2. Download the latest Multiscreen release and unzip it into the game's `Mods` folder, so you have `Railroader/Mods/Multiscreen/` containing `Info.json`, `Multiscreen.dll` and `0Harmony.dll`.
+2. Download the latest Multiscreen release and unzip it into the game's `Mods` folder, so you have `Railroader/Mods/Multiscreen/` containing `Info.json`, `Multiscreen.dll`, `0Harmony.dll`, `LICENSE`, `NOTICE` and `LICENSE-Harmony.txt`. Install only one Multiscreen build: the game refuses a second assembly named `Multiscreen` in the same session.
 3. Ensure your second screen is connected and working in extended mode (on Windows: Windows Key + P > Extend).
-4. Start Railroader and enable Multiscreen in the main menu's Mods screen. It is an optional mod: it only changes your own screens, and other players in a multiplayer session don't need it.
+4. Start Railroader and enable Multiscreen in the main menu's Mods screen. It only changes your own screens, and other players in a multiplayer session don't need it.
 
-If it is working, the second screen shows a sky background (or your solid colour) as soon as the game starts, and the map and company windows open there. Multiscreen logs to the game's `Player.log` (lines from the `macka/multiscreen` mod).
+It is an optional mod, so the game records it in each save's mod list and the save (or, when you join, the host's game) decides: a save or host whose list doesn't include Multiscreen turns it off for that session, while a player who joins without it installed isn't asked for it.
+
+If it is working, the second screen shows a sky background (or your solid colour) as soon as the game starts, and the map and company windows open there. Multiscreen logs to the game's `Player.log` under the identifier in its `Info.json`; at startup it reports the displays it found, whether its window lookup self-test passed, and how many feature patches applied.
 
 ### Settings file
 Settings are kept in `settings.json` in the mod's folder, written when you change them in game. You can also edit it with the game closed, for example to set `"DebugLogging": "Debug"` (Info, Debug, Trace or Verbose) when reporting a problem.
@@ -55,9 +57,11 @@ Note: changing your secondary display requires a game restart (sorry, this is a 
 
 Note: Display 0 can only be used for the main game display and can not be used by the secondary display (sorry, this is a limitation of UnityEngine and I can't do anything about it). A manual work around on Windows is to change your Primary Monitor in the Windows Display settings.
 
+Note: the game and the second display must be different monitors. A choice that would put both on one monitor is refused, the previous choice stays, and the menu says why. Hand-edited values in `settings.json` are checked the same way at startup.
+
 4. Click Apply.
 
-5. If the Secondary Display setting has changed, you will receive a warning to restart the game. Clicking 'Quit' only closes the game, you need to manually reopen Railroader; 'Later' keeps playing and the change applies on the next start.
+5. If the Secondary Display setting has changed (or the game display moves to the monitor the second screen is using now), you will receive a warning to restart the game. Clicking 'Quit' only closes the game, you need to manually reopen Railroader; 'Later' keeps playing and the change applies on the next start.
 
 
 
@@ -75,7 +79,7 @@ Note: Display 0 can only be used for the main game display and can not be used b
 4. Optional, Windows only: set ``Cert-Thumb`` and ``SignToolPath`` to code-sign Release builds; leave ``Cert-Thumb`` empty to skip signing
 
 ### Building
-``dotnet build Multiscreen.csproj -c Release`` (or open Multiscreen.sln). The output is `bin/Release/Multiscreen.dll` and `bin/Release/0Harmony.dll`; a release is those two files plus `Info.json` in a `Multiscreen` folder.
+``dotnet build Multiscreen.csproj -c Release`` (or open Multiscreen.sln). A Release build also assembles the release folder `bin/Release/Multiscreen/` with `Info.json`, `Multiscreen.dll`, `0Harmony.dll`, `LICENSE`, `NOTICE` and `LICENSE-Harmony.txt` (Harmony's MIT notice). Distribute that whole folder: the Apache-2.0 licence and NOTICE, and Harmony's licence, must travel with the binaries.
 
 ### How it works on 0.6
-Railroader 0.6 keeps every game window as a child of its `WindowManager` and finds windows by walking those children. Multiscreen moves a window to a canvas on the second display, so it also teaches those walks (`WindowManager.GetWindow<T>`, `GetWindowByIdentifier`, `EnumerateWindows`, `HitTest`) about the windows it holds. Every Harmony patch is applied on its own: if a future game version changes a target, that one feature is skipped with a warning in `Player.log` and the rest keep working.
+Railroader 0.6 keeps every game window as a child of its `WindowManager` and finds windows by walking those children. Multiscreen moves a window to a canvas on the second display, so it also teaches those walks (`WindowManager.GetWindow<T>`, `GetWindowByIdentifier`, `EnumerateWindows`, `HitTest`) about the windows it holds. The two patches that make undocked windows findable (Transform's child enumerator, `MoveNext` and `Current`) only work as a pair, so they are applied together and checked at startup by a self-test that walks a real `foreach`; if either fails, both are removed, undocking is turned off (windows stay on the main display) and `Player.log` says why. Every other Harmony patch is applied on its own: if a future game version changes its target, that one feature is skipped with a warning in `Player.log` and the rest keep working.

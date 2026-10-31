@@ -74,7 +74,7 @@ public class DisplayFocusManager : MonoBehaviour
         Logger.LogDebug($"DisplayFocusManager.Start() runInBackground: {Application.runInBackground}");
         Application.runInBackground = true;
 
-        Vector3 mousePos = Display.RelativeMouseAt(Input.mousePosition);
+        Vector3 mousePos = MouseUtil.RelativeMouseAt(Input.mousePosition);
         lastScreen = mousePos.z >= 0 ? (int)mousePos.z : 0;
 
 
@@ -99,7 +99,7 @@ public class DisplayFocusManager : MonoBehaviour
 
     private void Update()
     {
-        Vector3 mousePos = Display.RelativeMouseAt(Input.mousePosition);
+        Vector3 mousePos = MouseUtil.RelativeMouseAt(Input.mousePosition);
         int currentScreen = mousePos.z >= 0 ? (int)mousePos.z : 0;
 
         if (currentScreen != lastScreen)

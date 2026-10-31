@@ -17,16 +17,18 @@ namespace Multiscreen;
 
 public static class Multiscreen
 {
-    public const string HarmonyId = "macka.multiscreen";
+    // Owner id for Harmony; kept distinct from any other Multiscreen build so unpatching only removes ours.
+    public const string HarmonyId = "multiscreen.port06";
 
     public static Settings settings;
     public static int gameDisplay = 0;
     public static int secondDisplay = 1;
-    public static int targetDisplay = 0;
+    public static int targetDisplay = 1;
     public static RawImage background;
     public static bool focusManager;
 
-    public static bool userPrefFullScr;
+    // Set when Display.Activate turned off a fullscreen the player had at that moment; consumed once.
+    internal static bool fullscreenRestorePending;
 
     public const string UNDOCK = "Canvas - Undock";
     public const string DISPLAY_FOCUS_MANAGER = "DisplayFocusManager";
@@ -39,12 +41,11 @@ public static class Multiscreen
     private static bool _activated;
     private static Harmony _harmony;
 
-    // Every patch class, applied one at a time so a target missing in a future game build only disables
-    // that one feature (logged once) instead of the whole mod.
+    // Applied one class at a time: a target missing in a future game build disables only that feature
+    // (logged once). The Transform enumerator pair is not in this list; it is applied as one unit and
+    // self-tested in ApplyUndockCore, and undocking stays off unless it passes.
     private static readonly Type[] PatchClasses =
     {
-        typeof(TransformEnumeratorPatch.MoveNext),
-        typeof(TransformEnumeratorPatch.Current),
         typeof(WindowManagerPatch),
         typeof(WindowManagerEnumeratePatch),
         typeof(WindowPatch),
@@ -67,15 +68,9 @@ public static class Multiscreen
 
         Logger.LogInfo($"Multiscreen: game {Application.version}, Unity {Application.unityVersion}, {SystemInfo.graphicsDeviceType}");
 
-        if (!_activated)
-            userPrefFullScr = Screen.fullScreen;
-        Logger.LogDebug($"User preference 'Full screen': {userPrefFullScr}");
-
         List<DisplayInfo> displays = new List<DisplayInfo>();
         Screen.GetDisplayLayout(displays);
-        Logger.LogInfo($"Multiscreen: {Display.displays.Length} Unity display(s), {displays.Count} in the layout");
-        for (int i = 0; i < displays.Count; i++)
-            Logger.LogDebug($"Display {i} ({displays[i].name}): {displays[i].width}x{displays[i].height} @ {displays[i].refreshRate} Hz");
+        LogDisplays(displays);
 
         if (Display.displays.Length <= 1)
         {
@@ -86,8 +81,9 @@ public static class Multiscreen
         if (!_activated)
         {
             ChooseDisplays();
-            Activate(displays);
+            // Set first: if activation throws part way, a reload must not try to activate again
             _activated = true;
+            Activate(displays);
         }
         else
         {
@@ -102,6 +98,8 @@ public static class Multiscreen
             return;
         }
 
+        _harmony = new Harmony(HarmonyId);
+        WindowUtils.UndockAvailable = ApplyUndockCore();
         ApplyPatches();
 
         if (settings.focusManager)
@@ -111,14 +109,36 @@ public static class Multiscreen
     internal static void Unload()
     {
         WindowUtils.ReleaseUndocked();
+        WindowUtils.UndockAvailable = false;
         EnableDisplayFocusManager(false);
         _harmony?.UnpatchAll(HarmonyId);
         _harmony = null;
     }
 
+    // The two Transform.Enumerator patches only work together (MoveNext alone makes every GetWindow<T> throw
+    // out of bounds; neither leaves undocked windows unfindable), so they go on as one unit and are proven
+    // through a real foreach before anything is allowed onto the second display.
+    private static bool ApplyUndockCore()
+    {
+        if (!TransformEnumeratorPatch.TryApply(_harmony, out string why))
+        {
+            Logger.LogWarning($"Multiscreen: undocking disabled, the window lookup patch could not be applied: {why}");
+            return false;
+        }
+
+        if (!TransformEnumeratorPatch.SelfTest(undockCanvas.transform, out why))
+        {
+            TransformEnumeratorPatch.Remove(_harmony);
+            Logger.LogWarning($"Multiscreen: undocking disabled, the window lookup self-test failed: {why}");
+            return false;
+        }
+
+        Logger.LogInfo("Multiscreen: window lookup patch applied and self-test passed");
+        return true;
+    }
+
     private static void ApplyPatches()
     {
-        _harmony = new Harmony(HarmonyId);
         int applied = 0;
         foreach (Type patch in PatchClasses)
         {
@@ -133,30 +153,64 @@ public static class Multiscreen
                 Logger.LogWarningOnce("patch:" + patch.FullName, $"Multiscreen: skipping {patch.Name}, its target is missing or changed on this game version: {inner.Message}");
             }
         }
-        Logger.LogInfo($"Multiscreen: {applied} of {PatchClasses.Length} patches applied");
+        Logger.LogInfo($"Multiscreen: {applied} of {PatchClasses.Length} feature patches applied, undocking {(WindowUtils.UndockAvailable ? "on" : "off")}");
+    }
+
+    private static void LogDisplays(List<DisplayInfo> layout)
+    {
+        Logger.LogInfo($"Multiscreen: {Display.displays.Length} Unity display(s), {layout.Count} in the layout");
+        for (int i = 0; i < Display.displays.Length; i++)
+            Logger.LogInfo($"Multiscreen: Unity display {i}: {Display.displays[i].systemWidth}x{Display.displays[i].systemHeight}");
+        for (int i = 0; i < layout.Count; i++)
+        {
+            DisplayInfo d = layout[i];
+            Logger.LogInfo($"Multiscreen: layout {i} \"{d.name}\": {d.width}x{d.height} @ {d.refreshRate} Hz, work area {d.workArea}");
+        }
+    }
+
+    // The game and the second screen must be different monitors, and Unity display 0 always holds the
+    // game window, so the second screen is 1 or higher.
+    public static bool IsValidPair(int game, int second, int count) =>
+        game >= 0 && game < count && second >= 1 && second < count && second != game;
+
+    public static int FirstSecondFor(int game, int count)
+    {
+        for (int i = 1; i < count; i++)
+            if (i != game)
+                return i;
+        return -1;
     }
 
     private static void ChooseDisplays()
     {
-        gameDisplay = settings.gameDisplay;
-        secondDisplay = settings.secondDisplay;
+        int count = Display.displays.Length;
+        int game = settings.gameDisplay;
+        int second = settings.secondDisplay;
 
-        if (gameDisplay == secondDisplay)
+        // Out of range first, then the pair as a whole
+        if (game < 0 || game >= count)
+            game = 0;
+        if (second < 1 || second >= count)
+            second = -1;
+
+        if (!IsValidPair(game, second, count))
         {
-            gameDisplay = 0;
-            secondDisplay = 1;
+            second = FirstSecondFor(game, count);
+            if (second < 0)
+            {
+                game = 0;
+                second = 1;
+            }
         }
 
-        if (gameDisplay < 0 || gameDisplay >= Display.displays.Length)
-            gameDisplay = 0;
+        if (game != settings.gameDisplay || second != settings.secondDisplay)
+            Logger.LogInfo($"Multiscreen: display settings game {settings.gameDisplay} / second {settings.secondDisplay} adjusted to game {game} / second {second}");
 
-        if (secondDisplay < 0 || secondDisplay >= Display.displays.Length)
-            secondDisplay = 1;
+        gameDisplay = game;
+        secondDisplay = second;
+        targetDisplay = second;
 
-        // To use display 0 for the second screen we target display 1, then move the main window to display 0
-        targetDisplay = secondDisplay == 0 ? 1 : secondDisplay;
-
-        Logger.LogDebug($"Game display: {gameDisplay}, second display: {secondDisplay}, target display: {targetDisplay}");
+        Logger.LogInfo($"Multiscreen: game display {gameDisplay}, second display {secondDisplay}");
     }
 
     private static void Activate(List<DisplayInfo> displayInfo)
@@ -165,8 +219,7 @@ public static class Multiscreen
         int width2 = target.systemWidth;
         int height2 = target.systemHeight;
 
-        Logger.LogDebug($"Display 0: {Display.displays[gameDisplay].renderingWidth}x{Display.displays[gameDisplay].renderingHeight} Full screen: {Screen.fullScreen}");
-        Logger.LogDebug($"Display {targetDisplay}: {width2}x{height2}");
+        Logger.LogDebug($"Display {targetDisplay}: {width2}x{height2}, full screen now: {Screen.fullScreen}");
 
         bool canMove = gameDisplay < displayInfo.Count;
         if (canMove)
@@ -174,11 +227,14 @@ public static class Multiscreen
 
         Logger.LogInfo($"Multiscreen: activating display {targetDisplay}...");
 
-        // Display.Activate drops Screen.fullScreen (Unity UUM-59482); MenuManagerPatch restores the user's choice.
+        // Display.Activate drops Screen.fullScreen (Unity UUM-59482). Remember whether the player was in
+        // fullscreen right now; MenuManagerPatch puts it back once if activation took it away.
+        bool wasFullScreen = Screen.fullScreen;
         Screen.fullScreen = true;
         target.Activate();
         target.SetRenderingResolution(width2, height2);
         target.SetParams(width2, height2, 0, 0);
+        fullscreenRestorePending = wasFullScreen;
 
         // Activating a display can push the main window back to the first monitor on 3+ monitor setups
         // (Unity UUM-140744); put it back where it was asked to be.

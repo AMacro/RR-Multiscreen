@@ -17,6 +17,10 @@ namespace Multiscreen.Util
         // Cached by WindowManagerPatch (Awake/OnDestroy) so the hot enumerator patch only compares references.
         internal static Transform ManagerTransform;
 
+        // False until the window lookup patch is applied and its startup self-test passes. While false nothing
+        // moves to the second display (no auto-undock, no ALT+click), so no window can become unfindable.
+        internal static bool UndockAvailable;
+
         public static Transform UndockRoot => Multiscreen.undockCanvas != null ? Multiscreen.undockCanvas.transform : null;
 
         public static Transform DockRoot
@@ -39,9 +43,19 @@ namespace Multiscreen.Util
             if (targetWindow == null)
                 return;
 
+            if (secondary && !UndockAvailable)
+            {
+                Logger.LogWarningOnce("undock-off", "Multiscreen: undocking is disabled on this game version (see the warning at startup); windows stay on the main display");
+                return;
+            }
+
             Transform newParent = secondary ? UndockRoot : DockRoot;
 
-            Logger.LogVerbose($"SetDisplay({targetWindow.name}, {secondary}) current parent: {targetWindow.transform.parent?.name}, new parent: {newParent?.name}");
+            Logger.LogVerbose(() =>
+            {
+                Transform parent = targetWindow.transform.parent;
+                return $"SetDisplay({targetWindow.name}, {secondary}) current parent: {(parent != null ? parent.name : "none")}, new parent: {(newParent != null ? newParent.name : "none")}";
+            });
 
             if (newParent == null || targetWindow.transform.parent == newParent)
                 return;
@@ -141,10 +155,29 @@ namespace Multiscreen.Util
     // The mouse position relative to the display it is on: (x, y, display index).
     public static class MouseUtil
     {
+        // Display.RelativeMouseAt is a native call (a cursor query that may round-trip to the window system
+        // under Wine) and uGUI asks it once per raycaster per pointer update; answer repeats from a one-entry
+        // cache keyed on the frame and the position.
+        private static int _cachedFrame = -1;
+        private static Vector2 _cachedPosition;
+        private static Vector3 _cachedResult;
+
+        public static Vector3 RelativeMouseAt(Vector2 position)
+        {
+            int frame = Time.frameCount;
+            if (frame == _cachedFrame && position == _cachedPosition)
+                return _cachedResult;
+
+            _cachedResult = Display.RelativeMouseAt(position);
+            _cachedPosition = position;
+            _cachedFrame = frame;
+            return _cachedResult;
+        }
+
         public static Vector3 RelativeMouse()
         {
             Vector3 raw = Input.mousePosition;
-            Vector3 rel = Display.RelativeMouseAt(raw);
+            Vector3 rel = RelativeMouseAt(raw);
 
             // RelativeMouseAt returns zero where multi-display isn't supported; fall back to the raw position
             if (rel == Vector3.zero)

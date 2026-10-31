@@ -24,6 +24,20 @@ public static class WindowManagerPatch
         Logger.LogTrace($"WindowManager.Awake(): {__instance.transform.name}");
     }
 
+    // Every way out of a game (pause-menu quit, disconnect, loading another save, editor) calls this first,
+    // while the manager is still alive: dock the undocked windows so they die with the game UI scene like
+    // vanilla windows do. The pause-menu prefix and OnDestroy below stay as fallbacks.
+    [HarmonyPrefix]
+    [HarmonyPatch(nameof(WindowManager.DestroyAllCustomWindows))]
+    private static void DestroyAllCustomWindows(WindowManager __instance)
+    {
+        if (WindowManager.Shared != __instance)
+            return;
+
+        Logger.LogDebug("WindowManager.DestroyAllCustomWindows(): docking undocked windows");
+        WindowUtils.ReleaseUndocked();
+    }
+
     // The game UI scene is unloading: our undocked windows belong to this manager, so they go with it.
     [HarmonyPrefix]
     [HarmonyPatch("OnDestroy")]
@@ -110,9 +124,13 @@ public static class WindowManagerEnumeratePatch
 // Instead this extends the foreach itself: Transform's enumerator (always called through IEnumerator, so it is
 // never inlined) yields the undocked windows after the manager's real children. Every other transform in the
 // game takes the vanilla path after one reference comparison.
+//
+// MoveNext and Current only work as a pair, so they are applied together (TryApply), removed together, and
+// proven by SelfTest through a real foreach before undocking is switched on.
 public static class TransformEnumeratorPatch
 {
-    private static System.Type EnumeratorType => AccessTools.Inner(typeof(Transform), "Enumerator");
+    private static MethodInfo _moveNext;
+    private static MethodInfo _current;
 
     private static bool IsManager(Transform outer, out Transform undock)
     {
@@ -125,46 +143,132 @@ public static class TransformEnumeratorPatch
         return (object)undock != null;
     }
 
-    [HarmonyPatch]
-    public static class MoveNext
+    private static bool MoveNextPrefix(Transform ___outer, ref int ___currentIndex, ref bool __result)
     {
-        private static MethodBase TargetMethod() => AccessTools.Method(EnumeratorType, nameof(IEnumerator.MoveNext));
+        if (!IsManager(___outer, out Transform undock))
+            return true;
 
-        private static bool Prefix(Transform ___outer, ref int ___currentIndex, ref bool __result)
+        int extra = undock.childCount;
+        if (extra == 0)
+            return true;
+
+        ___currentIndex++;
+        __result = ___currentIndex < ___outer.childCount + extra;
+        return false;
+    }
+
+    private static bool CurrentPrefix(Transform ___outer, int ___currentIndex, ref object __result)
+    {
+        if (!IsManager(___outer, out Transform undock))
+            return true;
+
+        int own = ___outer.childCount;
+        if (___currentIndex < own)
+            return true;
+
+        int index = ___currentIndex - own;
+        if (index >= undock.childCount)
+            return true;
+
+        __result = undock.GetChild(index);
+        return false;
+    }
+
+    // Both prefixes or neither
+    internal static bool TryApply(Harmony harmony, out string why)
+    {
+        why = null;
+        System.Type enumerator = AccessTools.Inner(typeof(Transform), "Enumerator");
+        _moveNext = enumerator != null ? AccessTools.Method(enumerator, nameof(IEnumerator.MoveNext)) : null;
+        _current = enumerator != null ? AccessTools.PropertyGetter(enumerator, nameof(IEnumerator.Current)) : null;
+        if (_moveNext == null || _current == null)
         {
-            if (!IsManager(___outer, out Transform undock))
-                return true;
+            why = "UnityEngine.Transform.Enumerator MoveNext/Current not found";
+            return false;
+        }
 
-            int extra = undock.childCount;
-            if (extra == 0)
-                return true;
-
-            ___currentIndex++;
-            __result = ___currentIndex < ___outer.childCount + extra;
+        try
+        {
+            harmony.Patch(_moveNext, prefix: new HarmonyMethod(AccessTools.Method(typeof(TransformEnumeratorPatch), nameof(MoveNextPrefix))));
+            harmony.Patch(_current, prefix: new HarmonyMethod(AccessTools.Method(typeof(TransformEnumeratorPatch), nameof(CurrentPrefix))));
+            return true;
+        }
+        catch (System.Exception ex)
+        {
+            why = (ex.InnerException ?? ex).Message;
+            Remove(harmony);
             return false;
         }
     }
 
-    [HarmonyPatch]
-    public static class Current
+    internal static void Remove(Harmony harmony)
     {
-        private static MethodBase TargetMethod() => AccessTools.PropertyGetter(EnumeratorType, nameof(IEnumerator.Current));
-
-        private static bool Prefix(Transform ___outer, int ___currentIndex, ref object __result)
+        foreach (MethodInfo method in new[] { _moveNext, _current })
         {
-            if (!IsManager(___outer, out Transform undock))
-                return true;
+            if (method == null)
+                continue;
+            try { harmony.Unpatch(method, HarmonyPatchType.Prefix, harmony.Id); }
+            catch (System.Exception ex) { Logger.LogDebug($"Unpatch {method.Name}: {ex.Message}"); }
+        }
+    }
 
-            int own = ___outer.childCount;
-            if (___currentIndex < own)
-                return true;
+    // Stands in a temporary "manager" with one child and one temporary child on the undock canvas, then walks
+    // both through real foreach loops: the manager walk must yield its own child first and the undock child
+    // last, and an unrelated transform's walk must be exactly vanilla.
+    internal static bool SelfTest(Transform undock, out string why)
+    {
+        why = null;
+        Transform savedManager = WindowUtils.ManagerTransform;
+        GameObject manager = null, other = null, probe = null;
+        try
+        {
+            manager = new GameObject("Multiscreen.SelfTest.Manager");
+            GameObject own = new GameObject("own");
+            own.transform.SetParent(manager.transform, false);
 
-            int index = ___currentIndex - own;
-            if (index >= undock.childCount)
-                return true;
+            other = new GameObject("Multiscreen.SelfTest.Other");
+            GameObject otherChild = new GameObject("child");
+            otherChild.transform.SetParent(other.transform, false);
 
-            __result = undock.GetChild(index);
+            probe = new GameObject("Multiscreen.SelfTest.Probe");
+            probe.transform.SetParent(undock, false);
+
+            WindowUtils.ManagerTransform = manager.transform;
+
+            List<Transform> seen = new List<Transform>();
+            foreach (Transform t in manager.transform)
+                seen.Add(t);
+
+            int expected = 1 + undock.childCount;
+            if (seen.Count != expected || seen[0] != own.transform || seen[seen.Count - 1] != probe.transform)
+            {
+                why = $"manager walk yielded {seen.Count} item(s), expected {expected} ending with the undocked probe";
+                return false;
+            }
+
+            List<Transform> vanilla = new List<Transform>();
+            foreach (Transform t in other.transform)
+                vanilla.Add(t);
+
+            if (vanilla.Count != 1 || vanilla[0] != otherChild.transform)
+            {
+                why = $"an unrelated transform's walk yielded {vanilla.Count} item(s), expected exactly its 1 child";
+                return false;
+            }
+
+            return true;
+        }
+        catch (System.Exception ex)
+        {
+            why = ex.Message;
             return false;
+        }
+        finally
+        {
+            WindowUtils.ManagerTransform = savedManager;
+            if (probe != null) Object.DestroyImmediate(probe);
+            if (manager != null) Object.DestroyImmediate(manager);
+            if (other != null) Object.DestroyImmediate(other);
         }
     }
 }

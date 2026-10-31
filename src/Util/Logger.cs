@@ -60,4 +60,10 @@ public static class Logger
         if (Level >= LogLevel.Verbose)
             Sink?.Info($"[Verbose] {msg}");
     }
+
+    public static void LogVerbose(Func<object> resolver)
+    {
+        if (Level >= LogLevel.Verbose)
+            Sink?.Info($"[Verbose] {resolver?.Invoke()}");
+    }
 }

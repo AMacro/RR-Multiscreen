@@ -19,7 +19,7 @@ public static class MultipleDisplayUtilitiesPatch
 
     private static bool Prefix(ref Vector3 __result, Vector2 position)
     {
-        Vector3 result = Display.RelativeMouseAt(position);
+        Vector3 result = Util.MouseUtil.RelativeMouseAt(position);
 
         if (result.z <= 0f)
             return true;

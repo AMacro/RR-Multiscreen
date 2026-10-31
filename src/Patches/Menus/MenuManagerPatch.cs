@@ -56,7 +56,9 @@ public static class MainMenuPatch
     }
 }
 
-// Display.Activate clears Screen.fullScreen; once the main menu is up, restore what the player had.
+// Display.Activate clears Screen.fullScreen. Once the main menu is up, put fullscreen back, but only once per
+// game session and only if the player was in fullscreen when the display was activated; later visits to the
+// main menu leave the player's own choice alone.
 [HarmonyPatch(typeof(MenuManager))]
 public static class MenuManagerPatch
 {
@@ -70,8 +72,18 @@ public static class MenuManagerPatch
 
     private static IEnumerator RestoreFullScreen()
     {
+        if (!Multiscreen.fullscreenRestorePending)
+            yield break;
+
         yield return new WaitForSecondsRealtime(2f);
-        if (Multiscreen.userPrefFullScr && !Screen.fullScreen)
+        if (!Multiscreen.fullscreenRestorePending)
+            yield break;
+
+        Multiscreen.fullscreenRestorePending = false;
+        if (!Screen.fullScreen)
+        {
+            Logger.LogInfo("Multiscreen: restoring fullscreen after display activation");
             Screen.fullScreen = true;
+        }
     }
 }
