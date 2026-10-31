@@ -1,4 +1,7 @@
-﻿using System;
+// Multiscreen by Macka (https://github.com/AMacro/RR-Multiscreen), Apache-2.0.
+// Modified in 2026 for the Railroader 0.6 port; see NOTICE.
+
+using System;
 using System.Collections.Generic;
 using HarmonyLib;
 using Multiscreen.Patches.Map;
@@ -80,15 +83,16 @@ public static class Multiscreen
             return;
         }
 
-        ChooseDisplays();
-
         if (!_activated)
         {
+            ChooseDisplays();
             Activate(displays);
             _activated = true;
         }
         else
         {
+            // Keep the activation-time displays: the canvas can't move until a restart, even if the
+            // settings now name another monitor (changed, then "Later" on the restart prompt).
             Logger.LogInfo($"Multiscreen: display {targetDisplay} already active (mod reloaded)");
         }
 
@@ -217,11 +221,14 @@ public static class Multiscreen
         Logger.LogInfo($"Multiscreen: display {targetDisplay} activated");
     }
 
+    // Held by reference and removed with DestroyImmediate: the game unloads and reloads mods in one frame,
+    // and a deferred Destroy would still be found (and kept dying) by the reload.
+    private static GameObject _focusManagerGO;
+
     public static void EnableDisplayFocusManager(bool enable = true)
     {
-        GameObject displayManager = GameObject.Find(DISPLAY_FOCUS_MANAGER);
-
-        if (enable == (displayManager != null))
+        bool present = _focusManagerGO != null;
+        if (enable == present)
         {
             focusManager = enable;
             return;
@@ -230,15 +237,16 @@ public static class Multiscreen
         if (enable)
         {
             Logger.LogInfo("Multiscreen: enabling display focus manager");
-            displayManager = new GameObject(DISPLAY_FOCUS_MANAGER);
-            displayManager.AddComponent<DisplayFocusManager>();
-            UnityEngine.Object.DontDestroyOnLoad(displayManager);
-            displayManager.SetActive(true);
+            _focusManagerGO = new GameObject(DISPLAY_FOCUS_MANAGER);
+            _focusManagerGO.AddComponent<DisplayFocusManager>();
+            UnityEngine.Object.DontDestroyOnLoad(_focusManagerGO);
+            _focusManagerGO.SetActive(true);
         }
         else
         {
             Logger.LogInfo("Multiscreen: removing display focus manager");
-            UnityEngine.Object.Destroy(displayManager);
+            UnityEngine.Object.DestroyImmediate(_focusManagerGO);
+            _focusManagerGO = null;
         }
 
         focusManager = enable;

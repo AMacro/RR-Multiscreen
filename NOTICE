@@ -4,7 +4,8 @@ Copyright Macka (AMacro), https://github.com/AMacro/RR-Multiscreen
 This product is the Multiscreen mod by Macka, licensed under the Apache
 License, Version 2.0 (see LICENSE).
 
-The Railroader 0.6 port (the native 0.6 mod loader, the 0.6.2 window system
-and menu changes) was made by ashenmare (https://github.com/ashenmare) and
-is distributed under the same license. Files changed by the port carry its
-changes; the original design, features and most of the code are Macka's.
+Version 2.0 ports it to the Railroader 0.6 mod loader and the 0.6.2 window
+system and menus. The port was made in 2026 by ashenmare
+(https://github.com/ashenmare) and is distributed under the same license.
+Every source file the port modified or added says so in its header. The
+original design, features and most of the code are Macka's.

@@ -17,7 +17,7 @@ Railroader 0.6 loads mods itself; Unity Mod Manager is not used (and should be r
 1. In Railroader, open Preferences and turn on **Allow Unsafe DLL Mods** (Multiscreen is a DLL mod), then restart the game.
 2. Download the latest Multiscreen release and unzip it into the game's `Mods` folder, so you have `Railroader/Mods/Multiscreen/` containing `Info.json`, `Multiscreen.dll` and `0Harmony.dll`.
 3. Ensure your second screen is connected and working in extended mode (on Windows: Windows Key + P > Extend).
-4. Start Railroader and make sure Multiscreen is enabled in the main menu's Mods screen. It is a client mod: it is not recorded in saves and nobody else in a multiplayer session needs it.
+4. Start Railroader and enable Multiscreen in the main menu's Mods screen. It is an optional mod: it only changes your own screens, and other players in a multiplayer session don't need it.
 
 If it is working, the second screen shows a sky background (or your solid colour) as soon as the game starts, and the map and company windows open there. Multiscreen logs to the game's `Player.log` (lines from the `macka/multiscreen` mod).
 

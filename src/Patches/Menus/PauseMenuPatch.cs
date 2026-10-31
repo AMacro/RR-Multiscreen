@@ -1,4 +1,7 @@
-﻿using HarmonyLib;
+// Multiscreen by Macka (https://github.com/AMacro/RR-Multiscreen), Apache-2.0.
+// Modified in 2026 for the Railroader 0.6 port; see NOTICE.
+
+using HarmonyLib;
 using Multiscreen.Util;
 using Logger = Multiscreen.Util.Logger;
 
