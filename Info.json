@@ -1,0 +1,18 @@
+{
+  "identifier": "macka/multiscreen",
+  "version": "2.0.0",
+  "name": "Multiscreen",
+  "author": "Macka",
+  "url": "https://github.com/AMacro/RR-Multiscreen",
+  "license": "Apache-2.0",
+  "scope": "client",
+  "assemblies": [
+    "Multiscreen.dll"
+  ],
+  "dependencies": {
+    "required": [
+      "rr/game >=0.6.2"
+    ]
+  },
+  "description": "Puts game windows on a second monitor. ALT+click a window's title bar to move it between screens; the map and company windows open on the second screen. The second screen has its own UI scale and an optional solid background, and the Multiscreen button on the main menu picks which monitor is the game and which is the second screen. Original mod by Macka; ported to the Railroader 0.6 mod loader."
+}

@@ -85,7 +85,7 @@ public class DisplayFocusManager : MonoBehaviour
             if (window.Item2 == Application.productName || window.Item2 == "Railroader")
                 displayToWindow[0] = window.Item1;
             else if (window.Item2 == "Unity Secondary Display")
-                displayToWindow[1] = window.Item1;
+                displayToWindow[Multiscreen.targetDisplay] = window.Item1;
         }
     }
 

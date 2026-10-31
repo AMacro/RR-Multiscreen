@@ -1,12 +1,11 @@
 <Project>
     <PropertyGroup>
+        <!-- Your Railroader install folder (the one holding Railroader_Data). Examples:
+             Windows: C:\Program Files (x86)\Steam\steamapps\common\Railroader
+             Linux:   /home/you/.local/share/Steam/steamapps/common/Railroader -->
         <InstallDir>C:\Program Files (x86)\Steam\steamapps\common\Railroader</InstallDir>
-        <ReferencePath>
-            $(InstallDir)\Railroader_Data\Managed\;
-            $(InstallDir)\Railroader_Data\Managed\UnityModManager\;
-         </ReferencePath>
-        <AssemblySearchPaths>$(AssemblySearchPaths);$(ReferencePath);</AssemblySearchPaths>
-		<SignToolPath>C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\</SignToolPath>
-		<Cert-Thumb>2ce2b8a98a59ffd407ada2e94f233bf24a0e68b9</Cert-Thumb>
+        <!-- Optional code signing for Release builds on Windows; leave Cert-Thumb empty to skip. -->
+        <SignToolPath>C:\Program Files (x86)\Microsoft SDKs\ClickOnce\SignTool\</SignToolPath>
+        <Cert-Thumb></Cert-Thumb>
     </PropertyGroup>
 </Project>
