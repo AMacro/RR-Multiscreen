@@ -1,0 +1,238 @@
+// Multiscreen by Macka (https://github.com/AMacro/RR-Multiscreen), Apache-2.0.
+// Modified in 2026 for the Railroader 0.6 port; see NOTICE.
+
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Multiscreen.Util;
+
+using System.Collections;
+using System.Runtime.InteropServices;
+using UnityEngine;
+public class DisplayFocusManager : MonoBehaviour
+{
+    private int lastScreen;
+    private Dictionary<int, IntPtr> displayToWindow = new Dictionary<int, IntPtr>();
+
+    #region Windows API
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetActiveWindow();
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetWindow(IntPtr hWnd, uint uCmd);
+
+    [DllImport("user32.dll")]
+    private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
+
+
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    static extern int GetClassName(IntPtr hWnd, StringBuilder lpClassName, int nMaxCount);
+
+    [DllImport("kernel32.dll")]
+    private static extern uint GetCurrentProcessId();
+
+    [DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr hWnd, uint dwFlags);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    // GetWindowRect() structure
+    [StructLayout(LayoutKind.Sequential)]
+    public struct RECT
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    private const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
+
+    // GetWindow() constants
+    private const uint GW_HWNDNEXT = 3;
+    private const uint GW_HWNDPREV = 2;
+
+    //GetWindowText() constants
+    private const int MAX_WINDOW_TITLE_LENGTH = 256;
+    #endregion
+
+    public IEnumerator Start()
+    {
+        yield return new WaitForSecondsRealtime(3f);
+
+        Logger.LogDebug($"DisplayFocusManager.Start() runInBackground: {Application.runInBackground}");
+        Application.runInBackground = true;
+
+        Vector3 mousePos = MouseUtil.RelativeMouseAt(Input.mousePosition);
+        lastScreen = mousePos.z >= 0 ? (int)mousePos.z : 0;
+
+
+        Logger.LogDebug($"DisplayFocusManager.Start()  Enumerating Windows...");
+
+        var windows = FindCurrentProcessWindows();
+        foreach (var window in windows)
+        {
+            Logger.LogDebug($"Window hWnd: {window.Item1}, Title: \"{window.Item2}\"");
+
+            if (window.Item2 == Application.productName || window.Item2 == "Railroader")
+                displayToWindow[0] = window.Item1;
+            else if (window.Item2 == "Unity Secondary Display")
+                displayToWindow[Multiscreen.targetDisplay] = window.Item1;
+        }
+    }
+
+    private void OnApplicationFocus(bool hasFocus)
+    {
+        Logger.LogDebug($"DisplayFocusManager.OnApplicationFocus({hasFocus})");
+    }
+
+    private void Update()
+    {
+        Vector3 mousePos = MouseUtil.RelativeMouseAt(Input.mousePosition);
+        int currentScreen = mousePos.z >= 0 ? (int)mousePos.z : 0;
+
+        if (currentScreen != lastScreen)
+        {
+            Logger.LogDebug($"DisplayFocusManager.Update() Mouse Moved last: {lastScreen}, new: {currentScreen}, applicationIsFocused: {Application.isFocused}");
+
+            lastScreen = currentScreen;
+
+            if (Application.isFocused)
+            {
+                GetFocus();
+            }
+        }
+    }
+
+    private List<Tuple<IntPtr, string>> FindCurrentProcessWindows()
+    {
+        List<Tuple<IntPtr, string>> processWindows = new List<Tuple<IntPtr, string>>();
+        uint currentPID = GetCurrentProcessId();
+
+        IntPtr shellWindow = GetActiveWindow();
+        IntPtr windowHandle = shellWindow;
+
+        while (windowHandle != IntPtr.Zero)
+        {
+            uint windowPID;
+            GetWindowThreadProcessId(windowHandle, out windowPID);
+
+            if (windowPID == currentPID)
+            {
+                StringBuilder title = new StringBuilder(MAX_WINDOW_TITLE_LENGTH);
+                GetWindowText(windowHandle, title, MAX_WINDOW_TITLE_LENGTH);
+
+                Tuple<IntPtr, string> newWin = new (windowHandle, title.ToString());
+
+                processWindows.Add(newWin);
+            }
+
+            windowHandle = GetWindow(windowHandle, GW_HWNDPREV);
+        }
+
+        return processWindows;
+    }
+
+    private void GetFocus()
+    {
+        if (displayToWindow.TryGetValue(lastScreen, out IntPtr windowHandle))
+        {
+            //Make sure if the user has brought another window on top of this display, we don't steal focus
+
+            if (IsWindowTopMostOnDisplay(windowHandle))
+            {
+                Logger.LogDebug($"GetFocus() Setting focus to window handle: {windowHandle} for display {lastScreen}");
+                SetForegroundWindow(windowHandle);
+            }else
+            {
+                Logger.LogDebug($"GetFocus() Skipping focus");
+            }
+        }
+    }
+
+    private bool IsWindowTopMostOnDisplay(IntPtr windowHandle)
+    {
+        // Get the monitor for our window
+        IntPtr monitor = MonitorFromWindow(windowHandle, MONITOR_DEFAULTTONEAREST);
+        Logger.LogDebug($"IsWindowTopMostOnDisplay() MonitorFromWindow({windowHandle}): {monitor}, for display {lastScreen}");
+
+        // Get our window's rectangle
+        RECT windowRect;
+        GetWindowRect(windowHandle, out windowRect);
+        Logger.LogDebug($"IsWindowTopMostOnDisplay() Target window rect: {windowHandle}: {{({windowRect.Left},{windowRect.Top}),({windowRect.Right},{windowRect.Bottom})}}");
+
+        // Start from the foreground window and walk down the Z-order
+        IntPtr currentWindow = GetForegroundWindow();
+        
+        Logger.LogDebug(()=> 
+            {
+                StringBuilder fgTitle = new StringBuilder(MAX_WINDOW_TITLE_LENGTH);
+                GetWindowText(currentWindow, fgTitle, MAX_WINDOW_TITLE_LENGTH);
+
+                return $"IsWindowTopMostOnDisplay() Starting at ForegroundWindow: {currentWindow}, Title: \"{fgTitle}\"";
+        
+            });
+
+        while (currentWindow != IntPtr.Zero)
+        {
+
+            Logger.LogDebug(() =>
+                {
+                    StringBuilder title = new StringBuilder(MAX_WINDOW_TITLE_LENGTH);
+                    GetWindowText(currentWindow, title, MAX_WINDOW_TITLE_LENGTH);
+
+                    StringBuilder strClass = new StringBuilder(MAX_WINDOW_TITLE_LENGTH);
+                    GetClassName(currentWindow, strClass, MAX_WINDOW_TITLE_LENGTH);
+
+                    GetWindowThreadProcessId(currentWindow, out uint windowPID);
+
+                    return $"IsWindowTopMostOnDisplay() Checking window: {currentWindow}, Title: \"{title}\", Class: \"{strClass}\", Monitor: {MonitorFromWindow(currentWindow, MONITOR_DEFAULTTONEAREST)}, Target Monitor: {monitor}, windowPid: {windowPID}";
+
+                }); 
+
+            if (MonitorFromWindow(currentWindow, MONITOR_DEFAULTTONEAREST) == monitor)
+            {
+
+                if (currentWindow == windowHandle)
+                {
+                    Logger.LogDebug($"IsWindowTopMostOnDisplay() Found our window - nothing above it");
+                    return true;
+                }
+
+                RECT currentRect;
+                GetWindowRect(currentWindow, out currentRect);
+                Logger.LogDebug($"IsWindowTopMostOnDisplay() On same monitor - Window: {currentWindow}, Rect: {{({currentRect.Left},{currentRect.Top}),({currentRect.Right},{currentRect.Bottom})}}");
+
+                if (RectsOverlap(windowRect, currentRect) && !(currentRect.Left == currentRect.Right && currentRect.Top == currentRect.Bottom))
+                {
+                    Logger.LogDebug($"IsWindowTopMostOnDisplay() Found overlapping window above target");
+                    return false;
+                }
+            }
+
+            currentWindow = GetWindow(currentWindow, GW_HWNDNEXT);
+        }
+
+        Logger.LogDebug($"IsWindowTopMostOnDisplay() Reached end of window list");
+        return true;
+    }
+
+    private bool RectsOverlap(RECT r1, RECT r2)
+    {
+        return !(r2.Left > r1.Right ||
+                 r2.Right < r1.Left ||
+                 r2.Top > r1.Bottom ||
+                 r2.Bottom < r1.Top);
+    }
+}

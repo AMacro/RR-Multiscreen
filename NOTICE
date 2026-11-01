@@ -1,0 +1,16 @@
+Multiscreen for Railroader, Railroader 0.6 port
+Copyright Macka (AMacro), https://github.com/AMacro/RR-Multiscreen
+
+This product is a modified version of the Multiscreen mod by Macka,
+licensed under the Apache License, Version 2.0 (see LICENSE). It is not
+an official release by Macka unless he publishes it himself.
+
+Version 2.0 ports Multiscreen to the Railroader 0.6 mod loader and the
+0.6.2 window system and menus. The port was made in 2026 by ashenmare
+(https://github.com/ashenmare) and is distributed under the same license.
+Every source file the port modified or added says so in its header. The
+original design, features and most of the code are Macka's.
+
+Third-party software shipped with this mod:
+Harmony (0Harmony.dll) by Andreas Pardeike, MIT License; see
+LICENSE-Harmony.txt (third-party/LICENSE-Harmony.txt in the source tree).

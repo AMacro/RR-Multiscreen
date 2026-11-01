@@ -1,0 +1,71 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Railroader 0.6 native DLL mod (no Unity Mod Manager). One assembly, loaded by the game from Info.json "assemblies". -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Multiscreen</AssemblyName>
+    <RootNamespace>Multiscreen</RootNamespace>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <Version>2.0.1</Version>
+    <FileVersion>2.0.1.0</FileVersion>
+    <AssemblyVersion>2.0.1.0</AssemblyVersion>
+    <Nullable>disable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <DebugType>none</DebugType>
+    <Deterministic>true</Deterministic>
+    <PathMap>$(MSBuildProjectDirectory)=/_/</PathMap>
+    <!-- InstallDir comes from Directory.Build.targets (see Directory.Build.targets.example) or -p:InstallDir=...;
+         it is imported after this file, so it is only used in items and targets, never in properties here. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="src/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <!-- 0Harmony.dll ships beside Multiscreen.dll; it is not listed in Info.json "assemblies". -->
+    <PackageReference Include="Lib.Harmony" Version="2.3.6" />
+  </ItemGroup>
+
+  <!-- Game and Unity references, never copied to the output -->
+  <ItemGroup>
+    <Reference Include="Railroader.Modding"><HintPath>$(InstallDir)/Railroader_Data/Managed/Railroader.Modding.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Railroader"><HintPath>$(InstallDir)/Railroader_Data/Managed/Railroader.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Core"><HintPath>$(InstallDir)/Railroader_Data/Managed/Core.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="KeyValue.Runtime"><HintPath>$(InstallDir)/Railroader_Data/Managed/KeyValue.Runtime.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Newtonsoft.Json"><HintPath>$(InstallDir)/Railroader_Data/Managed/Newtonsoft.Json.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Unity.InputSystem"><HintPath>$(InstallDir)/Railroader_Data/Managed/Unity.InputSystem.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Unity.TextMeshPro"><HintPath>$(InstallDir)/Railroader_Data/Managed/Unity.TextMeshPro.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine"><HintPath>$(InstallDir)/Railroader_Data/Managed/UnityEngine.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.CoreModule"><HintPath>$(InstallDir)/Railroader_Data/Managed/UnityEngine.CoreModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.InputLegacyModule"><HintPath>$(InstallDir)/Railroader_Data/Managed/UnityEngine.InputLegacyModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.UI"><HintPath>$(InstallDir)/Railroader_Data/Managed/UnityEngine.UI.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.UIModule"><HintPath>$(InstallDir)/Railroader_Data/Managed/UnityEngine.UIModule.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="UnityEngine.TextRenderingModule"><HintPath>$(InstallDir)/Railroader_Data/Managed/UnityEngine.TextRenderingModule.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+
+  <Target Name="CheckInstallDir" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="!Exists('$(InstallDir)/Railroader_Data/Managed/Railroader.dll')" Text="Railroader not found at '$(InstallDir)'. Copy Directory.Build.targets.example to Directory.Build.targets and set InstallDir, or build with -p:InstallDir=..." />
+  </Target>
+
+  <!-- Optional code signing on Windows Release builds (Cert-Thumb and SignToolPath in Directory.Build.targets) -->
+  <Target Name="SignAssembly" AfterTargets="Build" Condition="'$(Configuration)'=='Release' AND '$(Cert-Thumb)' != '' AND '$(OS)'=='Windows_NT'">
+    <Exec Command="&quot;$(SignToolPath)SignTool.exe&quot; sign /sha1 $(Cert-Thumb) /fd SHA256 /t http://timestamp.sectigo.com &quot;$(TargetPath)&quot;" />
+  </Target>
+
+  <!-- Release builds also assemble bin/Release/Multiscreen/, the folder that goes into the game's Mods folder.
+       It carries the licences: Apache-2.0 LICENSE and NOTICE (sections 4(a), 4(d)) and Harmony's MIT notice. -->
+  <Target Name="StageRelease" AfterTargets="Build;SignAssembly" Condition="'$(Configuration)'=='Release'">
+    <ItemGroup>
+      <ReleaseFile Include="$(TargetPath)" />
+      <ReleaseFile Include="$(OutDir)0Harmony.dll" />
+      <ReleaseFile Include="Info.json;LICENSE;NOTICE;third-party/LICENSE-Harmony.txt" />
+    </ItemGroup>
+    <RemoveDir Directories="$(OutDir)Multiscreen" />
+    <Copy SourceFiles="@(ReleaseFile)" DestinationFolder="$(OutDir)Multiscreen" />
+    <Error Condition="!Exists('$(OutDir)Multiscreen/%(ReleaseFile.Filename)%(ReleaseFile.Extension)')" Text="Release folder is missing %(ReleaseFile.Filename)%(ReleaseFile.Extension)" />
+    <Message Importance="high" Text="Release folder: $(OutDir)Multiscreen" />
+  </Target>
+</Project>

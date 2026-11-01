@@ -1,6 +1,8 @@
 
 # Railroader Multiscreen Mod
 
+Multiscreen was created by **Macka** ([AMacro/RR-Multiscreen](https://github.com/AMacro/RR-Multiscreen)). This branch is a modified version that ports it to the Railroader 0.6 mod loader (game 0.6.2 and later), offered for inclusion upstream; until Macka publishes it, it is not an official Macka release. See [NOTICE](NOTICE). Versions 1.x, for the pre-0.6 game with Unity Mod Manager, remain on the original repository.
+
 This mod expands Railroader from single to dual screen, allowing you to move game windows (map, company, station, car inspector, etc.) off the main game screen to a second screen. 
 
 **Core Features**
@@ -10,44 +12,30 @@ This mod expands Railroader from single to dual screen, allowing you to move gam
 
 
 ## Installation
-This mod requires Unity Mod Manager, if you are familiar with UMM you can download the [latest Multiscreen release](https://www.nexusmods.com/site/mods/21), otherwise see detailed instructions below.
+Railroader 0.6 loads mods itself; Unity Mod Manager is not used (and should be removed from the game folder if it is still there from an older version).
 
-1. Download the latest version of 'Multiscreen': https://www.nexusmods.com/railroader/mods/6
+1. In Railroader, open Preferences and turn on **Allow Unsafe DLL Mods** (Multiscreen is a DLL mod), then restart the game.
+2. Download the latest Multiscreen release and unzip it into the game's `Mods` folder, so you have `Railroader/Mods/Multiscreen/` containing `Info.json`, `Multiscreen.dll`, `0Harmony.dll`, `LICENSE`, `NOTICE` and `LICENSE-Harmony.txt`. Install only one Multiscreen build: the game refuses a second assembly named `Multiscreen` in the same session.
+3. Ensure your second screen is connected and working in extended mode (on Windows: Windows Key + P > Extend).
+4. Turn it on in `Preferences.json`. Multiscreen is a **client** mod: it only changes your own screens, so the game never records it in a save and never asks the host or other players for it. Railroader 0.6.2's Mods screen doesn't list client mods, so they're switched on in the game's preferences file instead. With the game closed, open `Documents/Railroader/Preferences.json` (on Linux/Proton, the same path inside the game's prefix), find `"clientMods"` and add this entry to its list (if there's no `clientMods` yet, add `"clientMods": [ ... ]` with just this entry):
 
-1. Download the latest version of Unity Mod Manager: https://www.nexusmods.com/site/mods/21 and unzip to a folder (e.g. your desktop)
+   ```json
+   {"identifier": "macka/multiscreen", "version": "2.0.1", "enabled": true, "scope": 2}
+   ```
 
-1. Run 'UnityModManager.exe'
+   Keep the version in step with the installed Multiscreen when you update it. Then start Railroader.
 
-1. Select 'Railroader' from the dropdown list and click 'Install' (use the doorstop method)
+   It will **not** appear in the Mods screen (0.6.2 doesn't list client mods there). You'll know it loaded when a **Multiscreen** button shows on the main menu.
 
-1. Click on the 'Mods' tab
+Because it's a client mod, it works whether or not the host (or anyone else) runs it, in single player and in multiplayer alike.
 
-1. Either drag the 'Multiscreen' zip file (downloaded in step 1) into the UMM Installer window OR click 'Install Mod' and select the 'Multiscreen' zip file
+If it is working, the second screen shows a sky background (or your solid colour) as soon as the game starts, and the map and company windows open there. Multiscreen logs to the game's `Player.log` under the identifier in its `Info.json`; at startup it reports the displays it found, whether its window lookup self-test passed, and how many feature patches applied.
 
-1. Ensure your second screen is connected and working in Extend mode (Windows Key + P > Extend if it is in Duplicate mode).
+### Settings file
+Settings are kept in `settings.json` in the mod's folder, written when you change them in game. You can also edit it with the game closed, for example to set `"DebugLogging": "Debug"` (Info, Debug, Trace or Verbose) when reporting a problem.
 
-1. Start Railroader.
-
-The Unity Mod Manager window will appear, check the mod status:
-
-- Green 'Active' status: you should be good to go, your second screen should have been detected and setup automatically and the second screen will show a blue sky and brown horizon background, if not, restart the game (this should only be necessary the first time you use the mod).
-
-- Grey 'Inactive' status: you need to activate the mod - press the 'On/Off' square button next to the status light, then restart the game.
-
-- Red 'Need restart' status: try restarting the game, if problems persist please post on the forum with your log file.
-
-9. Start the game as normal (new game/load a saved game/join or host a multiplayer server).
-
-10. Bonus step: once the Multiscreen mod is working, you can disable the UMM popup window in the UMM settings.
-
-### Installing Updates
-When starting Railroader you will be prompted if a new version of Multiscreen has been released.
-
-1. Close Railroader if it is running
-2. Open the Unity Mod Manager installer (run 'UnityModManager.exe') and go to the 'Mods' tab
-3. Right click 'Multiscreen' and select update
-Alternatively, the latest zip file can be downloaded from the Nexus Mods page and updated the same way as the original install.
-
+### Linux (Proton)
+Multiscreen 1.x was used on Linux through Proton with a second monitor: the second screen is its own window, which Wine places on that monitor. Version 2.0 on game 0.6 (Unity 6) has not been confirmed there yet; reports with your Proton version and renderer (Direct3D 12 by default, or `-force-d3d11`) are welcome.
 
 ## Usage
 
@@ -63,56 +51,43 @@ e.g. if you lose the map window press 'M' to hide the map and then press 'M' a s
 
 
 ### UI Scaling
-As of version 1.2.0 you can now set the UI scaling on the secondary display. You will find the option in the game preferences on the 'Graphics' tab
-Spoiler:  Show
+You can set the UI scaling on the secondary display separately from the main screen. You will find it in the game preferences on the 'Graphics' tab, under the game's own UI Scale, together with the Solid Background option.
 
 
 ### Choosing a Different Monitor for your Game and Second Screen
-If your system has 3 or more monitors connected, you may find the default second screen is on the wrong monitor. As of version 1.0.2, you can choose a different monitor for the second screen.
+If your system has 3 or more monitors connected, you may find the default second screen is on the wrong monitor. You can choose a different monitor for the second screen.
 
 1. Start Railroader.
-2. Click the 'Multiscreen Mod' button on the Main Menu.
+2. Click the 'Multiscreen' button on the Main Menu.
 3. Select your Game Display and Secondary Displays from the dropdowns.
 
 Note: changing your secondary display requires a game restart (sorry, this is a limitation of UnityEngine and I can't do anything about it).
 
 Note: Display 0 can only be used for the main game display and can not be used by the secondary display (sorry, this is a limitation of UnityEngine and I can't do anything about it). A manual work around on Windows is to change your Primary Monitor in the Windows Display settings.
 
+Note: the game and the second display must be different monitors. A choice that would put both on one monitor is refused, the previous choice stays, and the menu says why. Hand-edited values in `settings.json` are checked the same way at startup.
+
 4. Click Apply.
 
-5. If the Secondary Display setting has changed, you will receive a warning to restart the game. Clicking 'Quit' only closes the game, you need to manually reopen Railroader.
+5. If the Secondary Display setting has changed (or the game display moves to the monitor the second screen is using now), you will receive a warning to restart the game. Clicking 'Quit' only closes the game, you need to manually reopen Railroader; 'Later' keeps playing and the change applies on the next start.
 
 
 
 
 ## Building From Source
-This section assumes you have a basic knowledge of Microsoft Visual Studio and GitHub.
 
 ### Requirements
-- [Visual Studio 2022 Community Edition](https://visualstudio.microsoft.com/vs/community/) (not Visual Studio Code)
-- [Railroader](https://store.steampowered.com/app/1683150/) is installed on the system
+- The .NET SDK (6 or later; `dotnet build` works on Windows and Linux), or Visual Studio 2022
+- [Railroader](https://store.steampowered.com/app/1683150/) 0.6.2 or later installed on the system
 
 ### Setup
 1. Clone/download this repository to your computer
-2. Create a copy of 'Directory.Build.targets.example' and name it 'Directory.Build.targets'
-3. Open 'Directory.Build.targets'
-4. Update the ``InstallDir`` parameter to match your Railroader install path, default is:  
-  ``<InstallDir>C:\Program Files (x86)\Steam\steamapps\common\Railroader</InstallDir>``
-
-5. Update the ``Cert-Thum`` parameter[^1]
-- If you do not have a code signing certificate/hardware key this should be left blank i.e.  
-  ``<Cert-Thumb></Cert-Thumb>``
-- If you do have a code signing certifcate/hardware key, enter certificate's thumbprint e.g.  
-  ``<Cert-Thumb>2ce2b8a98a59ffd407ada2e94f233bf24a0e68b9</Cert-Thumb>``
-6. Update the ``SignToolPath`` parameter
-- If you do not have a code signing certificate/hardware key leave as-is.
-- If you do have a code signing certifcate/hardware key, update as required.
-7. Save and close 'Directory.Build.targets'
+2. Create a copy of 'Directory.Build.targets.example' and name it 'Directory.Build.targets' (it is git-ignored)
+3. Set ``InstallDir`` to your Railroader install folder (the one containing `Railroader_Data`)
+4. Optional, Windows only: set ``Cert-Thumb`` and ``SignToolPath`` to code-sign Release builds; leave ``Cert-Thumb`` empty to skip signing
 
 ### Building
-1. Open Multiscreen solution
-2. Build your prefered target (Debug/Release)
+``dotnet build Multiscreen.csproj -c Release`` (or open Multiscreen.sln). A Release build also assembles the release folder `bin/Release/Multiscreen/` with `Info.json`, `Multiscreen.dll`, `0Harmony.dll`, `LICENSE`, `NOTICE` and `LICENSE-Harmony.txt` (Harmony's MIT notice). Distribute that whole folder: the Apache-2.0 licence and NOTICE, and Harmony's licence, must travel with the binaries.
 
-Note: If the build config is set to 'Release' a zip archive containing the output dll and json files will be created in the solution's 'Release' folder
-  
-[^1]: ``Cert-Thum`` is used when building in 'Release' mode and, if specified, will run SignTool to codesign the compiled assembly
+### How it works on 0.6
+Railroader 0.6 keeps every game window as a child of its `WindowManager` and finds windows by walking those children. Multiscreen moves a window to a canvas on the second display, so it also teaches those walks (`WindowManager.GetWindow<T>`, `GetWindowByIdentifier`, `EnumerateWindows`, `HitTest`) about the windows it holds. The two patches that make undocked windows findable (Transform's child enumerator, `MoveNext` and `Current`) only work as a pair, so they are applied together and checked at startup by a self-test that walks a real `foreach`; if either fails, both are removed, undocking is turned off (windows stay on the main display) and `Player.log` says why. Every other Harmony patch is applied on its own: if a future game version changes its target, that one feature is skipped with a warning in `Player.log` and the rest keep working.
