@@ -15,6 +15,7 @@ public static class MapWindowPatch
     {
         Logger.LogTrace($"MapWindow.Start() {__instance.name}");
         __instance.SetDisplay(true);
+        __instance._window?.ClampToParentBounds();
 
         return true;
     }

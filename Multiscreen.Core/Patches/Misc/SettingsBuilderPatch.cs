@@ -43,7 +43,7 @@ public static class SettingsBuilderPatch
 
         Transform sibling = null;
 
-        Logger.LogVerbose($"Child count: {children.Length}");
+        Logger.LogVerbose($"Child count: {children?.Length}");
         for (int i = 0;  i < children.Length; i++)
         {
             //Multiscreen.Log($"Child name: {children[i].text}");
@@ -105,20 +105,20 @@ public static class SettingsBuilderPatch
 
         Logger.LogDebug($"BuildTabGraphics() Preferences");
         //expand window if using preferences in game
-        if (PreferencesWindow.Instance != null)
-        {
-            Logger.LogDebug($"BuildTabGraphics() Preferences !null");
-            Vector2 size = PreferencesWindow.Instance._window.GetContentSize();
-            Logger.LogDebug($"Window Size: {size} Slider Size: {slider.RectTransform.transform.GetComponent<RectTransform>().rect.height}");
-            size.y += slider.RectTransform.GetComponent<LayoutElement>().minHeight;// slider.RectTransform.rect.height;
-  
-            PreferencesWindow.Instance._window.SetContentSize(size);
-            Logger.LogDebug($"Window Size: {size} Slider Size: {slider.RectTransform.parent}");
-        }
-        else
-        {
-            Logger.LogDebug($"BuildTabGraphics() Preferences is null");
-        }
+        //if (PreferencesWindow.Shared != null)
+        //{
+        //    Logger.LogDebug($"BuildTabGraphics() Preferences !null");
+        //    Vector2 size = PreferencesWindow.Shared.Window.GetContentSize();
+        //    Logger.LogDebug($"Window Size: {size} Slider Size: {slider.RectTransform.transform.GetComponent<RectTransform>().rect.height}");
+        //    size.y += slider.RectTransform.GetComponent<LayoutElement>().minHeight;// slider.RectTransform.rect.height;
+
+        //    PreferencesWindow.Shared.Window.SetContentSize(size);
+        //    Logger.LogDebug($"Window Size: {size} Slider Size: {slider.RectTransform.parent}");
+        //}
+        //else
+        //{
+        //    Logger.LogDebug($"BuildTabGraphics() Preferences is null");
+        //}
     }
 
     /*

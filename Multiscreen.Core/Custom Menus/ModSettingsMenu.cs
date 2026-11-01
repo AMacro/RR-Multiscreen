@@ -1,4 +1,5 @@
 ﻿using UI.Builder;
+using UI.Common;
 using UI.Menu;
 using UnityEngine;
 using System.Linq;
@@ -13,10 +14,12 @@ using Logger = Multiscreen.Util.Logger;
 
 namespace Multiscreen.CustomMenu;
 
-public class ModSettingsMenu : MonoBehaviour
+public class ModSettingsMenu : BuilderMenuBase<ModSettingsMenu>
 {
-    GameObject contentPanel;
-    UIBuilderAssets assets;
+    public override Vector2 PreferredSize => new Vector2(500f, 650f);
+    public override string PanelTitle => "Multiscreen";
+    public override string BackButtonTitle => "Back";
+    public override string ForwardButtonTitle => "Apply";
 
     int newGameDisplay;
     int oldGameDisplay;
@@ -28,230 +31,180 @@ public class ModSettingsMenu : MonoBehaviour
     float oldScale;
     float newScale;
 
-    // Token: 0x06000AA5 RID: 2725 RVA: 0x00054B67 File Offset: 0x00052D67
-    private void Awake()
+    public override void Awake()
     {
-        TextMeshProUGUI title = GetComponentInChildren<TextMeshProUGUI>();
-        title.text = "Multiscreen";
-  
-        GameObject.DestroyImmediate(GameObject.Find("Preferences Menu(Clone)/Content/Tab View(Clone)"));
-
-        contentPanel = GameObject.Find("Preferences Menu(Clone)/Content");
-
-        assets = this.transform.GetComponent<PreferencesMenu>().panelAssets;
+        base.Awake();
 
         oldGameDisplay = newGameDisplay = Multiscreen.gameDisplay;
         oldSecondDisplay = newSecondDisplay = Multiscreen.secondDisplay;
 
         oldFocusManager = Multiscreen.focusManager;
-        oldSolidBg = Multiscreen.background.enabled;
-        oldColour = Multiscreen.background.color;
+        oldSolidBg = Multiscreen.background?.enabled ?? false;
+        oldColour = Multiscreen.background?.color ?? Color.black;
         oldScale = Multiscreen.settings.secondDisplayScale;
         newScale = oldScale;
-    } 
-
-    private void Start()
-    {
-        BuildPanelContent();
     }
 
-    private void Update()
+    public override void BuildPanelContent(UIPanelBuilder builder)
     {
-        if(oldGameDisplay != newGameDisplay || oldSecondDisplay != newSecondDisplay)
+        builder.AddSection("Game Display");
+
+        List<DisplayInfo> displays = new();
+        Screen.GetDisplayLayout(displays);
+
+        List<int> values = displays.Select((DisplayInfo r, int i) => i).ToList();
+
+        builder.AddField("Display", builder.AddDropdownIntPicker(values, oldGameDisplay, (int i) => (i >= 0) ? $"Display: {i} ({displays[i].name})" : $"00", canWrite: true, delegate (int i)
         {
-            Logger.LogDebug($"Update: {oldGameDisplay} {newGameDisplay} - {oldSecondDisplay} {newSecondDisplay}");
-
-            oldGameDisplay = newGameDisplay;
-            oldSecondDisplay = newSecondDisplay;
-
-            Logger.LogDebug($"Post Update: {oldGameDisplay} {newGameDisplay} - {oldSecondDisplay} {newSecondDisplay}");
-
-            GameObject.DestroyImmediate(GameObject.Find("Settings Menu(Clone)/Content/Tab View(Clone)"));
-            BuildPanelContent();
-        }
-    }
-
-    public void BuildPanelContent()
-    {
-        
-        if (contentPanel != null)
-        {
-            UIPanel.Create(contentPanel.transform.GetComponent<RectTransform>(), assets, delegate (UIPanelBuilder builder)
+            Logger.LogDebug($"Selected Display: {i}");
+            if (i == oldSecondDisplay)
             {
-                Logger.LogTrace("PanelCreate");
+                newSecondDisplay = oldGameDisplay;
+            }
+            newGameDisplay = i;
 
-                UIPanel.Create(contentPanel.transform.GetComponent<RectTransform>(), assets, delegate (UIPanelBuilder builder)
-                {
-                    builder.AddSection("Game Display");
+        }));
 
-                    List<DisplayInfo> displays = new();
-                    Screen.GetDisplayLayout(displays);
+        builder.AddSection("Secondary Display");
 
-                    List<int> values = displays.Select((DisplayInfo r, int i) => i).ToList();
-
-                    builder.AddField("Display", builder.AddDropdownIntPicker(values, oldGameDisplay, (int i) => (i >= 0) ? $"Display: {i} ({displays[i].name})" : $"00", canWrite: true, delegate (int i)
-                    {
-                        Logger.LogDebug($"Selected Display: {i}");
-                        if(i == oldSecondDisplay)
-                        {
-                            newSecondDisplay = oldGameDisplay;
-                        }
-                        newGameDisplay = i;
-
-                    }));
-
-                    /*
-                    builder.AddField("Full Screen", builder.AddToggle(() => Screen.fullScreen, delegate (bool en)
-                    {
-                        Multiscreen.Log($"Game Display Full Screen: {en}");
-                    })).Disable(true);
-                    */
-
-                    builder.AddSection("Secondary Display");
-
-                    builder.AddField("Display", builder.AddDropdownIntPicker(values, oldSecondDisplay, (int i) => (i >= 0) ? $"Display: {i} ({displays[i].name})" : $"00", canWrite: true, delegate (int i)
-                    {
-                        Logger.LogDebug($"Secondary Display: {i}");
-                        if (i == 0)
-                        {
-                            oldSecondDisplay = -1;
-                            return;
-                        }
-                            
-                        if (i == oldGameDisplay)
-                        {
-                            newGameDisplay = oldSecondDisplay;
-                        }
-                        newSecondDisplay = i;
-                        //Screen.MoveMainWindowTo(displays[i], new Vector2Int(0, 0));
-                    }));
-                    builder.AddLabel("Note: Display 0 can not be used for the Secondary Display due to a Unity Engine limitation.\r\nA work-around for this on Windows is to change your Primary display in the Windows Display settings.");
-
-                    builder.Spacer().Height(20f);
-
-                    builder.AddField("UI Scale", builder.AddSlider(() => newScale, () => string.Format("{0}%", Mathf.Round(newScale * 100f)),delegate (float f)
-                    {
-                        newScale = f;
-                        WindowUtils.UpdateScale(newScale);
-                    },
-                    0.2f, 2f, false));
-
-                    
-                    builder.AddField("Solid Background",builder.HStack(delegate (UIPanelBuilder builder)
-                    {
-                        builder.AddToggle(() => Multiscreen.background.enabled, isOn =>
-                        {
-                            Multiscreen.background.enabled = isOn;
-                            builder.Rebuild();
-                        });
-
-                        builder.Spacer(2f);
-
-                        builder.AddColorDropdown(ColorHelper.HexFromColor(Multiscreen.background.color), colour => 
-                        {
-                            UnityEngine.Color temp = Multiscreen.background.color;
-                            UnityEngine.Color newCol;
-                            if (ColorUtility.TryParseHtmlString(colour, out newCol))
-                            {
-                                Multiscreen.background.color = newCol;
-                            }
-                            else
-                            {
-                                Multiscreen.background.color = temp;
-                            }
-                            //Logger.LogInfo(colour);
-                        }
-                        ).Width(60f);
-                    })
-                    );
-
-
-                    builder.AddField("Focus Management", builder.AddToggle(() => Multiscreen.focusManager, delegate (bool en)
-                    {
-                        Multiscreen.EnableDisplayFocusManager(en);
-                    }));
-
-                    builder.AddLabel("Focus management ensures each display is focused when the mouse is over it.");
-
-                    builder.AddExpandingVerticalSpacer();
-
-                });
-
-                builder.Spacer(16f);
-                builder.HStack(delegate (UIPanelBuilder builder)
-                {
-                    builder.AddButton("Back", delegate
-                    {
-                        Multiscreen.EnableDisplayFocusManager(oldFocusManager);
-
-                        Multiscreen.background.enabled = oldSolidBg;
-                        Multiscreen.background.color = oldColour;
-
-                        Multiscreen.settings.secondDisplayScale = oldScale;
-                        WindowUtils.UpdateScale(oldScale);
-
-                        MenuManagerPatch._MMinstance.navigationController.Pop();
-
-                    });
-
-                    builder.Spacer().FlexibleWidth(1f);
-
-                    builder.AddButton("Apply", delegate
-                    {
-
-                        Multiscreen.settings.focusManager = Multiscreen.focusManager;
-
-                        Multiscreen.settings.solidBG = Multiscreen.background.enabled;
-                        Multiscreen.settings.bgColour = ColorHelper.HexFromColor(Multiscreen.background.color);
-
-                        Multiscreen.settings.secondDisplayScale = newScale;
-
-                        List<DisplayInfo> displays = new();
-                        Screen.GetDisplayLayout(displays);
-
-                        if (Multiscreen.gameDisplay != newGameDisplay)
-                        {
-                            Multiscreen.gameDisplay = newGameDisplay;
-                            Multiscreen.settings.gameDisplay = newGameDisplay;
-
-                            Screen.MoveMainWindowTo(displays[Multiscreen.gameDisplay], new Vector2Int(0, 0));
-                        }
-
-                        if (Multiscreen.secondDisplay != newSecondDisplay)
-                        {
-                            Multiscreen.secondDisplay = newSecondDisplay;
-                            Multiscreen.settings.secondDisplay = newSecondDisplay;
-
-                            /*
-                            if (Application.platform == RuntimePlatform.WindowsPlayer)
-                            {
-                                Screen.MoveMainWindowTo(displays[Multiscreen.secondDisplay], new Vector2Int(0, 0));
-                                
-                                WinNativeUtil.RECT r = new();
-                                WinNativeUtil.GetWindowRect(Process.GetCurrentProcess().MainWindowHandle,ref r);
-
-                                Multiscreen.Log($"Rect: {r.left}, {r.right}, {r.top}, {r.bottom}");
-                                Screen.MoveMainWindowTo(displays[Multiscreen.gameDisplay], new Vector2Int(0, 0));
-                            }
-                            else
-                            {
-                                ShowRestart();
-                            }*/
-
-                            ShowRestart();
-                        }
-
-                        MenuManagerPatch._MMinstance.navigationController.Pop();
-
-                    });
-                });
-            });
+        if (displays.Count < 2)
+        {
+            builder.AddLabel("Only one display detected.");
         }
+        else
+        {
+            builder.AddField("Display", builder.AddDropdownIntPicker(values, oldSecondDisplay, (int i) => (i >= 0) ? $"Display: {i} ({displays[i].name})" : $"00", canWrite: true, delegate (int i)
+            {
+                Logger.LogDebug($"Secondary Display: {i}");
+                if (i == 0)
+                {
+                    oldSecondDisplay = -1;
+                    return;
+                }
+
+                if (i == oldGameDisplay)
+                {
+                    newGameDisplay = oldSecondDisplay;
+                }
+                newSecondDisplay = i;
+            }));
+        }
+        builder.AddLabel("Note: Display 0 can not be used for the Secondary Display due to a Unity Engine limitation.\r\nA work-around for this on Windows is to change your Primary display in the Windows Display settings.");
+
+        builder.Spacer().Height(20f);
+
+        builder.AddField("UI Scale", builder.AddSlider(() => newScale, () => string.Format("{0}%", Mathf.Round(newScale * 100f)), delegate (float f)
+        {
+            newScale = f;
+            WindowUtils.UpdateScale(newScale);
+        },
+        0.2f, 2f, false));
+
+
+        builder.AddField("Solid Background", builder.HStack(delegate (UIPanelBuilder builder)
+        {
+            builder.AddToggle(() => Multiscreen.background.enabled, isOn =>
+            {
+                Multiscreen.background.enabled = isOn;
+                builder.Rebuild();
+            });
+
+            builder.Spacer(2f);
+
+            builder.AddColorDropdown(ColorHelper.HexFromColor(Multiscreen.background.color), colour =>
+            {
+                UnityEngine.Color temp = Multiscreen.background.color;
+                UnityEngine.Color newCol;
+                if (ColorUtility.TryParseHtmlString(colour, out newCol))
+                {
+                    Multiscreen.background.color = newCol;
+                }
+                else
+                {
+                    Multiscreen.background.color = temp;
+                }
+                //Logger.LogInfo(colour);
+            }
+            ).Width(60f);
+        })
+        );
+
+        builder.AddField("Focus Management", builder.AddToggle(() => Multiscreen.focusManager, delegate (bool en)
+        {
+            Multiscreen.EnableDisplayFocusManager(en);
+        }));
+
+        builder.AddLabel("Focus management ensures each display is focused when the mouse is over it.");
+
+        builder.AddExpandingVerticalSpacer();
+
+        builder.Spacer(16f);
+        builder.Spacer().FlexibleWidth(1f);
+    }
+
+    public override void PerformBackAction()
+    {
+        Multiscreen.EnableDisplayFocusManager(oldFocusManager);
+
+        Multiscreen.background.enabled = oldSolidBg;
+        Multiscreen.background.color = oldColour;
+
+        Multiscreen.settings.secondDisplayScale = oldScale;
+        WindowUtils.UpdateScale(oldScale);
+
+        this.NavigationController().Pop();
+    }
+
+    public override void PerformForwardAction()
+    {
+        Multiscreen.settings.focusManager = Multiscreen.focusManager;
+
+        Multiscreen.settings.solidBG = Multiscreen.background.enabled;
+        Multiscreen.settings.bgColour = ColorHelper.HexFromColor(Multiscreen.background.color);
+
+        Multiscreen.settings.secondDisplayScale = newScale;
+
+        List<DisplayInfo> displays = new();
+        Screen.GetDisplayLayout(displays);
+
+        if (Multiscreen.gameDisplay != newGameDisplay)
+        {
+            Multiscreen.gameDisplay = newGameDisplay;
+            Multiscreen.settings.gameDisplay = newGameDisplay;
+
+            Screen.MoveMainWindowTo(displays[Multiscreen.gameDisplay], new Vector2Int(0, 0));
+        }
+
+        if (Multiscreen.secondDisplay != newSecondDisplay)
+        {
+            Multiscreen.secondDisplay = newSecondDisplay;
+            Multiscreen.settings.secondDisplay = newSecondDisplay;
+
+            /*
+            if (Application.platform == RuntimePlatform.WindowsPlayer)
+            {
+                Screen.MoveMainWindowTo(displays[Multiscreen.secondDisplay], new Vector2Int(0, 0));
+
+                WinNativeUtil.RECT r = new();
+                WinNativeUtil.GetWindowRect(Process.GetCurrentProcess().MainWindowHandle,ref r);
+
+                Multiscreen.Log($"Rect: {r.left}, {r.right}, {r.top}, {r.bottom}");
+                Screen.MoveMainWindowTo(displays[Multiscreen.gameDisplay], new Vector2Int(0, 0));
+            }
+            else
+            {
+                ShowRestart();
+            }*/
+
+            ShowRestart();
+        }
+
+        MenuManagerPatch._MMinstance.navigationController.Pop();
     }
 
     private void ShowRestart()
     {
-        EarlyAccessSplash earlyAccessSplash = UnityEngine.Object.FindObjectOfType<EarlyAccessSplash>();
+        EarlyAccessSplash earlyAccessSplash = UnityEngine.Object.FindFirstObjectByType<EarlyAccessSplash>();
         earlyAccessSplash = UnityEngine.Object.Instantiate<EarlyAccessSplash>(earlyAccessSplash, earlyAccessSplash.transform.parent);
 
         TextMeshProUGUI text = GameObject.Find("Canvas/EA(Clone)/EA Panel/Scroll View/Viewport/Text").GetComponentInChildren<TextMeshProUGUI>();
@@ -268,7 +221,8 @@ public class ModSettingsMenu : MonoBehaviour
         UnityEngine.UI.Button button = GameObject.Find("Canvas/EA(Clone)/EA Panel/Buttons/Opt In").GetComponentInChildren<UnityEngine.UI.Button>();
         button.TMPText().text = "Quit";
         button.onClick.RemoveAllListeners();
-        button.onClick.AddListener(delegate {
+        button.onClick.AddListener(delegate
+        {
             Application.Quit();
         });
 

@@ -49,7 +49,7 @@ public static class PatchUtils
         if (interfaceType != null)
         {
             var types = GetAllTypesSafe()
-                .Where(p => !p.IsInterface && interfaceType.IsAssignableFrom(p))
+                .Where(p => !p.IsInterface && interfaceType.IsAssignableFrom(p) && !p.IsAbstract)
                 .ToArray();
 
             Logger.LogDebug(() =>

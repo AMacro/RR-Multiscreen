@@ -27,16 +27,21 @@
     <PackageReference Include="Krafs.Publicizer" Version="2.2.1" />
     <PackageReference Include="UnityModManager" Version="0.27.5" />
     <Publicize Include="Assembly-CSharp" IncludeCompilerGeneratedMembers="false" />
+    <Publicize Include="Railroader" IncludeCompilerGeneratedMembers="false" />
     <Publicize Include="UnityEngine.UI" IncludeCompilerGeneratedMembers="false" />
   </ItemGroup>
 
   <!-- Railroader -->
   <ItemGroup Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='Release'">
     <Reference Include="Assembly-CSharp" />
+	  <Reference Include="Railroader" />
   </ItemGroup> 
   <ItemGroup Condition="'$(Configuration)'=='MainBuild'">
     <Reference Include="Assembly-CSharp">
       <HintPath>$(InstallDir)\Railroader_Data\Managed\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Railroader">
+      <HintPath>$(InstallDir)\Railroader_Data\Managed\Railroader.dll</HintPath>
     </Reference>
   </ItemGroup>
   <!--ItemGroup Condition="'$(Configuration)'=='BetaBuild'">

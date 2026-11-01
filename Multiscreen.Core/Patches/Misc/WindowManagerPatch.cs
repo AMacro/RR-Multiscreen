@@ -1,6 +1,6 @@
 ﻿using HarmonyLib;
 using UnityEngine;
-using UI.Common;
+using UI.Windows;
 using Logger = Multiscreen.Util.Logger;
 using Multiscreen.Util;
 using System.Linq;
