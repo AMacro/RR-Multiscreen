@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Collections;
+using System.Runtime.InteropServices;
 using System.Text;
+using System;
+using UnityEngine;
 
 namespace Multiscreen.Util;
 
-using System.Collections;
-using System.Runtime.InteropServices;
-using UnityEngine;
 public class DisplayFocusManager : MonoBehaviour
 {
     private int lastScreen;

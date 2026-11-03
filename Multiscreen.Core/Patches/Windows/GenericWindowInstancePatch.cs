@@ -1,13 +1,13 @@
 using HarmonyLib;
 using Multiscreen.Util;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using UnityEngine;
-using UI.Windows;
-using Logger = Multiscreen.Util.Logger;
 using System.Text;
+using System;
+using UI.Windows;
+using UnityEngine;
+using Logger = Multiscreen.Util.Logger;
 
 namespace Multiscreen.Patches.Windows;
 

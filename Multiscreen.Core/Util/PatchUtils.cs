@@ -64,7 +64,7 @@ public static class PatchUtils
             return types;
         }
 
-        Logger.LogInfo($"[Warning] Interface {interfaceName} not found. This may be due to main / beta branch differences");
+        Logger.Log($"[Warning] Interface {interfaceName} not found. This may be due to main / beta branch differences");
         return [];
     }
 

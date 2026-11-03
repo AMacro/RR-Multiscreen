@@ -1,11 +1,10 @@
-﻿
-using HarmonyLib;
+﻿using HarmonyLib;
 using Multiscreen.Util;
 using TMPro;
 using UI.Builder;
 using UI.PreferencesWindow;
-using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine;
 using Logger = Multiscreen.Util.Logger;
 
 namespace Multiscreen.Patches.Misc;
@@ -59,6 +58,7 @@ public static class SettingsBuilderPatch
                    delegate (float f)
                    {
                        Multiscreen.settings.secondDisplayScale = f;
+                       Multiscreen.settings.Save();
                        WindowUtils.UpdateScale(f);
                    },
                    0.2f, 2f, false));
@@ -70,6 +70,7 @@ public static class SettingsBuilderPatch
             builder.AddToggle(() => Multiscreen.settings.solidBG, isOn =>
             {
                 Multiscreen.settings.solidBG = isOn;
+                Multiscreen.settings.Save();
                 Multiscreen.background.enabled = isOn;
                 builder.Rebuild();
             });
@@ -89,6 +90,7 @@ public static class SettingsBuilderPatch
                 {
                     Multiscreen.background.color = temp;
                 }
+                Multiscreen.settings.Save();
                 Logger.LogDebug(colour);
             }
             ).Width(60f);

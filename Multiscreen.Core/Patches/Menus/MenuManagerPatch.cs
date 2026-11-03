@@ -1,11 +1,11 @@
 ﻿using HarmonyLib;
+using Multiscreen.CustomMenu;
+using System.Collections;
+using TMPro;
+using UI.Menu;
 using UnityEngine.UI;
 using UnityEngine;
-using UI.Menu;
-using TMPro;
-using Multiscreen.CustomMenu;
 using Logger = Multiscreen.Util.Logger;
-using System.Collections;
 
 namespace Multiscreen.Patches.Menus;
 

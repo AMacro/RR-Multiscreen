@@ -1,10 +1,9 @@
 ﻿using HarmonyLib;
 using Multiscreen.Util;
-using UnityEngine;
 using UI.Windows;
-
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine;
 
 namespace Multiscreen.Patches.Misc;
 

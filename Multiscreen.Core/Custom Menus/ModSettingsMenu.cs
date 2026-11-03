@@ -1,15 +1,15 @@
-﻿using UI.Builder;
+﻿using Analytics;
+using Helpers;
+using Multiscreen.Patches.Menus;
+using Multiscreen.Util;
+using System.Collections.Generic;
+using System.Linq;
+using TMPro;
+using UI.Builder;
 using UI.Common;
+using UI.CompanyWindow;
 using UI.Menu;
 using UnityEngine;
-using System.Linq;
-using Multiscreen.Patches.Menus;
-using TMPro;
-using System.Collections.Generic;
-using UI.CompanyWindow;
-using Analytics;
-using Helpers;
-using Multiscreen.Util;
 using Logger = Multiscreen.Util.Logger;
 
 namespace Multiscreen.CustomMenu;
@@ -100,7 +100,6 @@ public class ModSettingsMenu : BuilderMenuBase<ModSettingsMenu>
         },
         0.2f, 2f, false));
 
-
         builder.AddField("Solid Background", builder.HStack(delegate (UIPanelBuilder builder)
         {
             builder.AddToggle(() => Multiscreen.background.enabled, isOn =>
@@ -157,6 +156,8 @@ public class ModSettingsMenu : BuilderMenuBase<ModSettingsMenu>
 
     public override void PerformForwardAction()
     {
+        bool restartRequired = false;
+
         Multiscreen.settings.focusManager = Multiscreen.focusManager;
 
         Multiscreen.settings.solidBG = Multiscreen.background.enabled;
@@ -173,6 +174,8 @@ public class ModSettingsMenu : BuilderMenuBase<ModSettingsMenu>
             Multiscreen.settings.gameDisplay = newGameDisplay;
 
             Screen.MoveMainWindowTo(displays[Multiscreen.gameDisplay], new Vector2Int(0, 0));
+
+            restartRequired = true;
         }
 
         if (Multiscreen.secondDisplay != newSecondDisplay)
@@ -180,26 +183,15 @@ public class ModSettingsMenu : BuilderMenuBase<ModSettingsMenu>
             Multiscreen.secondDisplay = newSecondDisplay;
             Multiscreen.settings.secondDisplay = newSecondDisplay;
 
-            /*
-            if (Application.platform == RuntimePlatform.WindowsPlayer)
-            {
-                Screen.MoveMainWindowTo(displays[Multiscreen.secondDisplay], new Vector2Int(0, 0));
-
-                WinNativeUtil.RECT r = new();
-                WinNativeUtil.GetWindowRect(Process.GetCurrentProcess().MainWindowHandle,ref r);
-
-                Multiscreen.Log($"Rect: {r.left}, {r.right}, {r.top}, {r.bottom}");
-                Screen.MoveMainWindowTo(displays[Multiscreen.gameDisplay], new Vector2Int(0, 0));
-            }
-            else
-            {
-                ShowRestart();
-            }*/
-
-            ShowRestart();
+            restartRequired = true;
         }
 
+        Multiscreen.settings.Save();
+
         MenuManagerPatch._MMinstance.navigationController.Pop();
+
+        if (restartRequired)
+            ShowRestart();
     }
 
     private void ShowRestart()
@@ -229,17 +221,3 @@ public class ModSettingsMenu : BuilderMenuBase<ModSettingsMenu>
         earlyAccessSplash.Show();
     }
 }
-
-
-/*
- 
-<style=h3>Welcome, Railroader!</style>
-
-There's a lot of work to do and railroad fun to be had, both for you, as well as for us, the developers of Railroader! In your travels on the rails, remember that Railroader is in <i>Early Access</i> and is a <i>work in progress</i>. 
-
-Many of the towns you pass through are not yet populated by buildings, and models may not be complete. We will be working to fill in the picture during Early Access, as well as listening to your feedback on gameplay to determine how best to shape Company mode and other mechanics. We sincerely hope you enjoy your time in the game, even if you have to use your imagination from time to time.
-
-Before you continue, it will help us build a better Railroader if we can collect anonymous usage data. Your name, railroad name, and other personalized information are not collected. If you change your mind you can always opt in or out in  Settings.
-
-Whatever your choice, thank you for playing <style=serif><b>RAILROADER</b></style> Early Access!
- * */
