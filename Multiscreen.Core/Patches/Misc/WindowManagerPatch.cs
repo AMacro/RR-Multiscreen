@@ -52,7 +52,6 @@ public static class WindowManager_Patch
         return true;
     }
 
-
     [HarmonyPrefix]
     [HarmonyPatch(typeof(WindowManager), nameof(WindowManager.CloseAllWindows))]
     private static void CloseAllWindows(WindowManager __instance)
@@ -75,5 +74,38 @@ public static class WindowManager_Patch
         }
 
         Logger.LogDebug($"End Closing All Windows");
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(WindowManager), nameof(WindowManager.GetWindowByIdentifier))]
+    private static bool GetWindowByIdentifier(WindowManager __instance, ref object __result, string identifier)
+    {
+        //Logger.Log($"GetWindowByIdentifier({identifier})");
+        GameObject undockParent = GameObject.Find(Multiscreen.UNDOCK);
+        if (undockParent != null)
+        {
+            //Logger.Log($"GetWindowByIdentifier({identifier}) Undock: {undockParent != null}");
+            var undocked = undockParent.GetComponentsInChildren<Window>(true);
+            //Logger.Log($"GetWindowByIdentifier({identifier}) Undocked Count: {undocked?.Length ?? 0}");
+            if (undocked == null || undocked.Length == 0)
+                return true;
+
+            //Logger.Log($"GetWindowByIdentifier({identifier}) Searching Undocked Windows");
+            foreach (Window window in undocked)
+            {
+                if (window != null)
+                {
+                    var iBuilder = window.GetComponent<IBuilderWindow>();
+                    if (iBuilder != null && iBuilder.Identifier == identifier)
+                    {
+                        Logger.LogVerbose($"GetWindowByIdentifier {identifier} Found!");
+                        __result = window;
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
     }
 }
