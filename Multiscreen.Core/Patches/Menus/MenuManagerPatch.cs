@@ -1,12 +1,11 @@
 ﻿using HarmonyLib;
+using Multiscreen.CustomMenu;
+using System.Collections;
+using TMPro;
+using UI.Menu;
 using UnityEngine.UI;
 using UnityEngine;
-using UI.Menu;
-using TMPro;
-using Multiscreen.CustomMenu;
-using Multiscreen.Util;
 using Logger = Multiscreen.Util.Logger;
-using System.Collections;
 
 namespace Multiscreen.Patches.Menus;
 
@@ -16,7 +15,7 @@ public static class MenuManagerPatch
     public static MainMenu _instance;
     public static MenuManager _MMinstance;
     public static PreferencesMenu ModMenu;
-    
+
     [HarmonyPostfix]
     [HarmonyPatch(typeof(MainMenu), nameof(MainMenu.Awake))]
     private static void Awake(MainMenu __instance)
@@ -25,7 +24,7 @@ public static class MenuManagerPatch
 
         _instance = __instance;
 
-        _instance.AddButton("Multiscreen Mod",onClick);
+        _instance.AddButton("Multiscreen Mod", OnClick);
 
         Button[] buttons = _instance.GetComponentsInChildren<Button>();
 
@@ -33,8 +32,8 @@ public static class MenuManagerPatch
         Button modSettings = null;
         foreach (Button button in buttons)
         {
-            if(button.GetComponentInChildren<TMP_Text>()?.text == "Preferences" )
-                insertindex= button.transform.GetSiblingIndex() + 1;
+            if (button.GetComponentInChildren<TMP_Text>()?.text == "Preferences")
+                insertindex = button.transform.GetSiblingIndex() + 1;
 
             if (button.GetComponentInChildren<TMP_Text>()?.text == "Multiscreen Mod")
                 modSettings = button;
@@ -44,7 +43,7 @@ public static class MenuManagerPatch
         {
             modSettings.transform.SetSiblingIndex(insertindex);
         }
-  
+
 
         //Multiscreen.Log($"My Index: {modSettings.transform.GetSiblingIndex()}");
     }
@@ -66,20 +65,14 @@ public static class MenuManagerPatch
     private static IEnumerator WaitForLoad()
     {
         yield return new WaitForSecondsRealtime(2f);
-        if(Multiscreen.userPrefFullScr)
+        if (Multiscreen.userPrefFullScr)
             Screen.fullScreen = true;
 
     }
 
-    private static void onClick()
+    private static void OnClick()
     {
-        if (_MMinstance != null)
-        {
-            ModMenu = UnityEngine.Object.Instantiate<PreferencesMenu>(_MMinstance.preferencesMenu);
-            ModMenu.transform.gameObject.AddComponent<ModSettingsMenu>();
-            _MMinstance.navigationController.Push(ModMenu);
-           
-        }
+        _MMinstance?.navigationController?.Push(ModSettingsMenu.CreatePanel());
     }
 }
 

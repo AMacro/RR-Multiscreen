@@ -1,16 +1,15 @@
 using HarmonyLib;
 using Multiscreen.Util;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using UnityEngine;
-using UI.Common;
-using Logger = Multiscreen.Util.Logger;
 using System.Text;
+using System;
+using UI.Windows;
+using UnityEngine;
+using Logger = Multiscreen.Util.Logger;
 
 namespace Multiscreen.Patches.Windows;
-
 
 [HarmonyPatch]
 public static class GenericWindowInstancePatch
@@ -20,7 +19,7 @@ public static class GenericWindowInstancePatch
         var types = GenericWindowInstanceHelper.GetWindowTypesToPatch();
         var methods = types.SelectMany(t => GenericWindowInstanceHelper.GetMethodsToPatch(t)).ToList();
 
-        Logger.LogDebug(()=>
+        Logger.LogDebug(() =>
         {
             StringBuilder sb = new();
 
@@ -77,8 +76,7 @@ public static class GenericWindowInstanceHelper
         var manualTypes = PatchUtils.GetAllTypesSafe()
                     .Where(t => MANUAL_TYPES.Contains(t.Name));
 
-        var windowTypes = PatchUtils.ScanForInterface("IProgrammaticWindow")
-            .Union(PatchUtils.ScanForInterface("IBuilderWindow"))
+        var windowTypes = PatchUtils.ScanForInterface("IBuilderWindow")
             .Union(PatchUtils.ScanForRequireComponent(typeof(Window)))
             .Union(manualTypes)
             .Distinct();
@@ -126,6 +124,6 @@ public static class GenericWindowInstanceHelper
             Logger.LogDebug($"Error getting methods to patch on type {type.Name}: {ex.Message}");
         }
 
-        return methods; 
+        return methods;
     }
 }

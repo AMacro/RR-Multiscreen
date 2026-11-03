@@ -1,9 +1,7 @@
 using HarmonyLib;
 using UnityEngine;
 using UI;
-using UI.Common;
-
-
+using UI.Windows;
 
 namespace Multiscreen.Patches.Misc;
 

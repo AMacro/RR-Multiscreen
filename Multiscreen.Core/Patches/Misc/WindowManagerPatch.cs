@@ -1,9 +1,9 @@
 ﻿using HarmonyLib;
-using UnityEngine;
-using UI.Common;
-using Logger = Multiscreen.Util.Logger;
 using Multiscreen.Util;
 using System.Linq;
+using UI.Windows;
+using UnityEngine;
+using Logger = Multiscreen.Util.Logger;
 
 namespace Multiscreen.Patches.Misc;
 

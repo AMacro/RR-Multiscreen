@@ -1,11 +1,9 @@
 ﻿using HarmonyLib;
 using Multiscreen.Util;
-using UnityEngine;
-using UI;
-using UI.Common;
-
+using UI.Windows;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine;
 
 namespace Multiscreen.Patches.Misc;
 
@@ -23,7 +21,6 @@ public class WindowPatch
         {
             __instance.ToggleDisplay();
         }
-
     }
 
 }

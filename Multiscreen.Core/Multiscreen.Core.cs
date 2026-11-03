@@ -1,21 +1,17 @@
-﻿using System;
-using HarmonyLib;
-using JetBrains.Annotations;
-using UnityEngine.UI;
-using UnityEngine;
-using UnityModManagerNet;
-using System.Collections.Generic;
-using Analytics;
-using Helpers;
-using TMPro;
-using Logger = Multiscreen.Util.Logger;
+﻿using HarmonyLib;
 using Multiscreen.Util;
+using Railroader.Modding;
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+using Logger = Multiscreen.Util.Logger;
 
 namespace Multiscreen;
 
-public static class Multiscreen
+public sealed class Multiscreen : IModEntryPoint
 {
-    public static UnityModManager.ModEntry ModEntry;
+    public static IModContext ModContext;
     public static Settings settings;
     public static int gameDisplay = 0;
     public static int secondDisplay = 1;
@@ -25,40 +21,36 @@ public static class Multiscreen
 
     public static bool userPrefFullScr;
 
-    //private const string LOG_FILE = "multiscreen.log";
-
     public const string UNDOCK = "Canvas - Undock";
     public const string MODALS = "Canvas - Modals";
     public const string DISPLAY_FOCUS_MANAGER = "DisplayFocusManager";
 
-    [UsedImplicitly]
-    private static bool Load(UnityModManager.ModEntry modEntry)
+    public void OnModLoad(IModContext context)
     {
-        ModEntry = modEntry;
-        settings = Settings.Load<Settings>(modEntry);
-        ModEntry.OnGUI = settings.Draw;
-        ModEntry.OnSaveGUI = settings.Save;
-        ModEntry.OnLateUpdate += Multiscreen.LateUpdate;
+        context.Log.Info($"Loaded from {context.ModDirectory}");
+
+        ModContext = context;
+
+        settings = Settings.Load(ModContext.ModDirectory);
 
         Harmony harmony = null;
 
         try
         {
             Logger.Log($"Game Version: {Application.version}");
-            //File.Delete(LOG_FILE);
 
             //get user preference
             userPrefFullScr = Screen.fullScreen;
             Logger.Log($"User Preference 'Full screen': {userPrefFullScr}");
 
             //Apply patches
-            Logger.LogInfo("Patching...");
-            harmony = new Harmony(ModEntry.Info.Id);
+            Logger.Log("Patching...");
+            harmony = new Harmony(ModContext.ModIdentifier);
             harmony.PatchAll();
-            Logger.LogInfo("Patched");
+            Logger.Log("Patched");
 
             //Write screen data to log
-            Logger.LogInfo($"Display Count: {Display.displays.Length}");
+            Logger.Log($"Display Count: {Display.displays.Length}");
 
             List<DisplayInfo> displays = new List<DisplayInfo>();
             Screen.GetDisplayLayout(displays);
@@ -73,8 +65,8 @@ public static class Multiscreen
 
             if (Display.displays.Length <= 1)
             {
-                Logger.LogInfo("Less than 2 displays detected, nothing to do...");
-                return true;
+                Logger.Log("Less than 2 displays detected, nothing to do...");
+                return;
             }
 
             //Validate screen selection settings
@@ -83,7 +75,7 @@ public static class Multiscreen
 
             Logger.LogDebug($"\r\n\tGame Display: {gameDisplay}\r\n\tSecond Display: {secondDisplay}");
 
-            if(gameDisplay == secondDisplay)
+            if (gameDisplay == secondDisplay)
             {
                 gameDisplay = 0;
                 secondDisplay = 1;
@@ -94,7 +86,6 @@ public static class Multiscreen
                 gameDisplay = 0;
             }
 
-            
             if (secondDisplay < 0 || secondDisplay >= Display.displays.Length)
             {
                 secondDisplay = 1;
@@ -108,111 +99,44 @@ public static class Multiscreen
             int mainDisp = displays.FindIndex(s => s.Equals(Screen.mainWindowDisplayInfo));
             Logger.LogDebug($"Main Display: {mainDisp}");
 
-            for( i=0; i<Display.displays.Length; i++)
+            for (i = 0; i < Display.displays.Length; i++)
             {
                 Logger.LogDebug($"Display {i} Active: {Display.displays[i].active}");
 
             }
-           
+
             Activate();
 
-            if(settings.focusManager)
+            if (settings.focusManager)
                 EnableDisplayFocusManager();
+
+            GameObject updateChecker = new("UpdateChecker");
+            GameObject.DontDestroyOnLoad(updateChecker);
+            updateChecker.AddComponent<UpdateCheck>();
         }
         catch (Exception ex)
         {
-            Logger.LogInfo($"Failed to load: {ex.Message}\r\n{ex.StackTrace}");
+            Logger.Log($"Failed to load: {ex.Message}\r\n{ex.StackTrace}");
             harmony?.UnpatchAll();
-            return false;
+            return;
         }
 
-        return true;
+        return;
     }
 
-
-    private static void LateUpdate(UnityModManager.ModEntry modEntry, float deltaTime)
+    public void OnModUnload()
     {
-        if(ModEntry.NewestVersion != null && ModEntry.NewestVersion.ToString() != "")
-        {
-            Logger.LogInfo($"Multiscreen Latest Version: {ModEntry.NewestVersion}");
-
-            ModEntry.OnLateUpdate -= Multiscreen.LateUpdate;
-
-            if (ModEntry.NewestVersion > ModEntry.Version)
-            {
-                ShowUpdate();
-            }
-            
-        }
-        
-    }
-    private static void ShowUpdate()
-    {
-        EarlyAccessSplash earlyAccessSplash = UnityEngine.Object.FindObjectOfType<EarlyAccessSplash>();
-
-        if (earlyAccessSplash == null)
-            return;
-
-        earlyAccessSplash = UnityEngine.Object.Instantiate<EarlyAccessSplash>(earlyAccessSplash, earlyAccessSplash.transform.parent);
-
-        TextMeshProUGUI text = GameObject.Find("Canvas/EA(Clone)/EA Panel/Scroll View/Viewport/Text").GetComponentInChildren<TextMeshProUGUI>();
-        text.text = $"\r\n<style=h3>Multiscreen Update</style>\r\n\r\nA new version of Multiscreen Mod is available.\r\n\r\nCurrent version: {ModEntry.Version}\r\nNew version: {ModEntry.NewestVersion}\r\n\r\nRun Unity Mod Manager Installer to apply the update.";
-
-        RectTransform rt = GameObject.Find("Canvas/EA(Clone)/EA Panel").transform.GetComponent<RectTransform>();
-
-
-        UnityEngine.Object.DestroyImmediate(GameObject.Find("Canvas/EA(Clone)/EA Panel/Label Regular"));
-        UnityEngine.Object.DestroyImmediate(GameObject.Find("Canvas/EA(Clone)/EA Panel/Buttons/Opt Out"));
-
-        UnityEngine.UI.Button button = GameObject.Find("Canvas/EA(Clone)/EA Panel/Buttons/Opt In").GetComponentInChildren<UnityEngine.UI.Button>();
-        button.TMPText().text = "OK";
-        button.onClick.RemoveAllListeners();
-        button.onClick.AddListener(delegate {
-            earlyAccessSplash.Dismiss();
-            UnityEngine.Object.Destroy(earlyAccessSplash);
-        });
-
-        earlyAccessSplash.Show();
-    }
-    private static void ShowRestart()
-    {
-        EarlyAccessSplash earlyAccessSplash = UnityEngine.Object.FindObjectOfType<EarlyAccessSplash>();
-
-        if (earlyAccessSplash == null)
-            return;
-
-        earlyAccessSplash = UnityEngine.Object.Instantiate<EarlyAccessSplash>(earlyAccessSplash, earlyAccessSplash.transform.parent);
-
-        TextMeshProUGUI text = GameObject.Find("Canvas/EA(Clone)/EA Panel/Scroll View/Viewport/Text").GetComponentInChildren<TextMeshProUGUI>();
-        text.text = "\r\n<style=h3>Restart Required!</style>\r\n\r\nAn update has been made to Unity Mod Manager settings.\r\n\r\nPlease restart Railroader.";
-
-        RectTransform rt = GameObject.Find("Canvas/EA(Clone)/EA Panel").transform.GetComponent<RectTransform>();
-        rt.sizeDelta = new Vector2(rt.rect.width, rt.rect.height / 2);
-
-
-        UnityEngine.Object.DestroyImmediate(GameObject.Find("Canvas/EA(Clone)/EA Panel/Label Regular"));
-        //UnityEngine.Object.DestroyImmediate(GameObject.Find("Canvas/EA/EA Panel/Buttons/Opt In"));
-        UnityEngine.Object.DestroyImmediate(GameObject.Find("Canvas/EA(Clone)/EA Panel/Buttons/Opt Out"));
-
-        UnityEngine.UI.Button button = GameObject.Find("Canvas/EA(Clone)/EA Panel/Buttons/Opt In").GetComponentInChildren<UnityEngine.UI.Button>();
-        button.TMPText().text = "Quit";
-        button.onClick.RemoveAllListeners();
-        button.onClick.AddListener(delegate {
-            Application.Quit();
-        });
-
-        earlyAccessSplash.Show();
     }
 
     public static void Activate()
     {
-        
+
         int width, height;
         int width2, height2, x2 = 0, y2 = 0;
 
         width = Display.displays[gameDisplay].renderingWidth;
         height = Display.displays[gameDisplay].renderingHeight;
-            
+
         width2 = Display.displays[targetDisplay].systemWidth;
         height2 = Display.displays[targetDisplay].systemHeight;
 
@@ -222,16 +146,16 @@ public static class Multiscreen
         List<DisplayInfo> displayInfo = new List<DisplayInfo>();
         Screen.GetDisplayLayout(displayInfo);
 
-        Screen.MoveMainWindowTo(displayInfo[gameDisplay],new Vector2Int(0,0));
+        Screen.MoveMainWindowTo(displayInfo[gameDisplay], new Vector2Int(0, 0));
 
 
-        Logger.LogInfo($"Display {targetDisplay} Activating...");
+        Logger.Log($"Display {targetDisplay} Activating...");
 
         Screen.fullScreen = true;
         Display.displays[targetDisplay].Activate();
         Display.displays[targetDisplay].SetRenderingResolution(width2, height2);
         Display.displays[targetDisplay].SetParams(width2, height2, x2, y2);
-      
+
         GameObject myGO;
         GameObject myCamGO;
         Camera myCamera;
@@ -265,7 +189,8 @@ public static class Multiscreen
         if (ColorUtility.TryParseHtmlString(Multiscreen.settings.bgColour, out newCol))
         {
             background.color = newCol;
-        }else
+        }
+        else
         {
             Multiscreen.settings.bgColour = "000000";
             background.color = UnityEngine.Color.black;
@@ -276,8 +201,8 @@ public static class Multiscreen
 
         myGO.SetActive(true);
 
-        Logger.LogInfo($"Display {targetDisplay} Activated");
-           
+        Logger.Log($"Display {targetDisplay} Activated");
+
     }
     public static void EnableDisplayFocusManager(bool enable = true)
     {
@@ -288,7 +213,7 @@ public static class Multiscreen
 
         if (enable)
         {
-            Logger.LogInfo("Enabling Display Focus Manager");
+            Logger.Log("Enabling Display Focus Manager");
             //Add our DisplayFocusManager to try to keep both windows active
             displayManager = new GameObject(DISPLAY_FOCUS_MANAGER);
             displayManager.AddComponent<DisplayFocusManager>();
@@ -297,7 +222,7 @@ public static class Multiscreen
         }
         else
         {
-            Logger.LogInfo("Removing Display Focus Manager");
+            Logger.Log("Removing Display Focus Manager");
             GameObject.Destroy(displayManager);
         }
 
