@@ -46,7 +46,7 @@ internal class UpdateCheck : MonoBehaviour
             }
         }
 
-        Logger.Log("Sending web request...");
+        Logger.LogDebug("Sending web request...");
         yield return webRequest.SendWebRequest();
 
         if (webRequest.result != UnityWebRequest.Result.Success)
@@ -56,7 +56,7 @@ internal class UpdateCheck : MonoBehaviour
         }
 
         var responseText = webRequest.downloadHandler.text;
-        Logger.Log($"Successfully checked for update:\r\n{responseText}");
+        Logger.LogDebug($"Successfully checked for update:\r\n{responseText}");
         data = JObject.Parse(responseText);
 
         if (data.GetValue("releases", StringComparison.OrdinalIgnoreCase) is not JArray releases || releases.Count == 0)
