@@ -1,5 +1,4 @@
 ﻿using System;
-using static UnityModManagerNet.UnityModManager;
 
 namespace Multiscreen.Util;
 
@@ -13,31 +12,15 @@ public enum LogLevel
 
 public static class Logger
 {
-
-    #region Logging
-
-    /*
-    public static void LogDebug(Func<object> resolver)
+    public static void Log(object msg)
     {
-        if (!Multiscreen.settings.DebugLogging)
-            return;
-        WriteLog($"[Debug] {resolver.Invoke()}");
-    }*/
-
-    public static void Log(object msg, LogLevel level = LogLevel.Info)
-    {
-        WriteLog($"[Info] {msg}");
-    } 
-    public static void LogInfo(object msg)
-    {
-        if (Multiscreen.settings.DebugLogging >= LogLevel.Info)
-            WriteLog($"[Info] {msg}");
+        Multiscreen.ModContext.Log.Info($"{msg}");
     }
 
     public static void LogDebug(object msg)
     {
         if (Multiscreen.settings.DebugLogging >= LogLevel.Debug)
-            WriteLog($"[Debug] {msg}");
+            Multiscreen.ModContext.Log.Debug($"{msg}");
     }
 
     public static void LogDebug(Func<object> resolver)
@@ -45,26 +28,19 @@ public static class Logger
         if (!(Multiscreen.settings.DebugLogging >= LogLevel.Debug))
             return;
 
-        WriteLog($"[Debug] {resolver?.Invoke()}");
+        Multiscreen.ModContext.Log.Debug($"{resolver?.Invoke()}");
     }
 
     public static void LogTrace(object msg)
     {
         if (Multiscreen.settings.DebugLogging >= LogLevel.Trace)
-            WriteLog($"[Trace] {msg}");
+            LogDebug($"[Trace] {msg}");
     }
+
     public static void LogVerbose(object msg)
     {
         if (Multiscreen.settings.DebugLogging >= LogLevel.Verbose)
-            WriteLog($"[Verbose] {msg}");
+            LogDebug($"[Verbose] {msg}");
     }
-
-    private static void WriteLog(string msg)
-    {
-        string str = $"[{DateTime.Now:HH:mm:ss.fff}] {msg}";
-        Multiscreen.ModEntry.Logger.Log(str);
-    }
-    #endregion
-
 }
 
