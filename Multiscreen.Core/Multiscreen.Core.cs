@@ -25,8 +25,15 @@ public sealed class Multiscreen : IModEntryPoint
     public const string MODALS = "Canvas - Modals";
     public const string DISPLAY_FOCUS_MANAGER = "DisplayFocusManager";
 
+    private static bool hasLoaded = false;
+
     public void OnModLoad(IModContext context)
     {
+        if (hasLoaded)
+        {
+            Logger.Log("Already loaded, skipping...");
+            return;
+        }
         context.Log.Info($"Loaded from {context.ModDirectory}");
 
         ModContext = context;
@@ -113,6 +120,8 @@ public sealed class Multiscreen : IModEntryPoint
             GameObject updateChecker = new("UpdateChecker");
             GameObject.DontDestroyOnLoad(updateChecker);
             updateChecker.AddComponent<UpdateCheck>();
+
+            hasLoaded= true;
         }
         catch (Exception ex)
         {
