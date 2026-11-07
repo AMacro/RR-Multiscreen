@@ -5,7 +5,7 @@
     <LangVersion>latest</LangVersion>
     <RootNamespace>Multiscreen</RootNamespace>
     <SignAssembly>False</SignAssembly>
-    <FileVersion>1.7.0.1</FileVersion>
+    <FileVersion>1.7.1.0</FileVersion>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <Configurations>Debug;Release;</Configurations>
   </PropertyGroup>
@@ -57,7 +57,7 @@
   </PropertyGroup>
 
   <Target Name="SignAssemblies" AfterTargets="PostBuildEvent">
-    <Exec Command="&quot;$(SignToolPath)SignTool.exe&quot; sign /sha1 $(Cert-Thumb) /fd SHA256 /t http://timestamp.sectigo.com &quot;$(ProjectDir)bin\MainBuild\net48\Multiscreen.Core.*.dll&quot;" Condition="'$(Configuration)'=='Release' AND '$(Cert-Thumb)' != ''"/>
+    <Exec Command="&quot;$(SignToolPath)SignTool.exe&quot; sign /sha1 $(Cert-Thumb) /fd SHA256 /t http://timestamp.sectigo.com &quot;$(TargetPath)&quot;" Condition="'$(Configuration)'=='Release' AND '$(Cert-Thumb)' != ''"/>
     <Copy SourceFiles="../info.json;../LICENSE;$(TargetPath);$(OutDir)/0Harmony.dll" DestinationFolder="../build/" />
     <Exec Command="powershell -executionpolicy bypass -Command &quot;(../post-build.ps1 -Ver '$(FileVersion)' -GameDir '$([System.Environment]::GetFolderPath(SpecialFolder.MyDocuments))\Railroader\Mods\Multiscreen' $(NoArchiveFlag))&quot;" />
   </Target>
